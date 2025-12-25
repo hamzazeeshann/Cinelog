@@ -39,3 +39,9 @@
 
 # debug information files
 *.dwo
+# Node modules and build artifacts
+client/node_modules/
+backend/build/.vs/**
+backend/cinelog_db*.bin
+backend/build/x64/Release/**
+backend/build/CMakeFiles/**
