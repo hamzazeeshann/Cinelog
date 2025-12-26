@@ -140,15 +140,19 @@ public:
             
             string username = extractStringValue(objStr, "username");
             strncpy(user.username, username.c_str(), sizeof(user.username) - 1);
+            user.username[sizeof(user.username) - 1] = '\0';
             
             string email = extractStringValue(objStr, "email");
             strncpy(user.email, email.c_str(), sizeof(user.email) - 1);
+            user.email[sizeof(user.email) - 1] = '\0';
             
             string password = extractStringValue(objStr, "password_hash");
             strncpy(user.password_hash, password.c_str(), sizeof(user.password_hash) - 1);
+            user.password_hash[sizeof(user.password_hash) - 1] = '\0';
             
             string bio = extractStringValue(objStr, "bio");
             strncpy(user.bio, bio.c_str(), sizeof(user.bio) - 1);
+            user.bio[sizeof(user.bio) - 1] = '\0';
             
             user.join_date = extractIntValue(objStr, "join_date");
             user.isAdmin = extractBoolValue(objStr, "isAdmin");

@@ -1059,3 +1059,38 @@ body {
 .watchlist-header p {
     color: var(--text-secondary);
 }
+
+/* ========== TOAST NOTIFICATIONS ========== */
+.toast {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    font-size: 14px;
+    font-weight: 500;
+    transition: bottom 0.3s ease-in-out;
+    min-width: 250px;
+    text-align: center;
+}
+
+.toast.show {
+    bottom: 30px;
+}
+
+.toast.toast-success {
+    border-left: 4px solid var(--accent-green);
+}
+
+.toast.toast-error {
+    border-left: 4px solid #FF4444;
+}
+
+.toast.toast-info {
+    border-left: 4px solid var(--accent-blue);
+}

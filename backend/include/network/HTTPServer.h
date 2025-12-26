@@ -15,6 +15,7 @@ struct HTTPRequest {
     string method;
     string path;
     string body;
+    string authToken;
 };
 
 class HTTPServer {
@@ -29,12 +30,55 @@ private:
         istringstream stream(rawRequest);
         stream >> req.method >> req.path;
         
+        // Extract Authorization header
+        size_t authPos = rawRequest.find("Authorization:");
+        if (authPos != string::npos) {
+            size_t authStart = authPos + 14; // Skip "Authorization:"
+            while (authStart < rawRequest.length() && rawRequest[authStart] == ' ') {
+                authStart++;
+            }
+            if (authStart < rawRequest.length()) {
+                size_t authEnd = rawRequest.find("\r\n", authStart);
+                if (authEnd != string::npos) {
+                    req.authToken = rawRequest.substr(authStart, authEnd - authStart);
+                }
+            }
+        }
+        
         size_t bodyStart = rawRequest.find("\r\n\r\n");
         if (bodyStart != string::npos) {
             req.body = rawRequest.substr(bodyStart + 4);
         }
         
         return req;
+    }
+    
+    void setAuthFromToken(const string& token) {
+        if (token.empty()) {
+            controller->setCurrentUser(0, false, false);
+            return;
+        }
+        
+        // Token format: "userId:username:isAdmin"
+        size_t firstColon = token.find(':');
+        if (firstColon == string::npos) {
+            controller->setCurrentUser(0, false, false);
+            return;
+        }
+        
+        size_t secondColon = token.find(':', firstColon + 1);
+        if (secondColon == string::npos) {
+            controller->setCurrentUser(0, false, false);
+            return;
+        }
+        
+        try {
+            int userId = stoi(token.substr(0, firstColon));
+            bool isAdmin = (token.substr(secondColon + 1) == "1");
+            controller->setCurrentUser(userId, true, isAdmin);
+        } catch (...) {
+            controller->setCurrentUser(0, false, false);
+        }
     }
 
     string parseJsonField(const string& json, const string& field) {
@@ -79,7 +123,7 @@ private:
         response << "Content-Length: " << body.length() << "\r\n";
         response << "Access-Control-Allow-Origin: *\r\n";
         response << "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
-        response << "Access-Control-Allow-Headers: Content-Type\r\n";
+        response << "Access-Control-Allow-Headers: Content-Type, Authorization\r\n";
         response << "\r\n";
         response << body;
         return response.str();
@@ -114,6 +158,7 @@ private:
             return buildHTTPResponse(200, "OK", result);
         }
         else if (req.path.find("/api/film/") == 0 && req.method == "GET") {
+            setAuthFromToken(req.authToken);
             int filmId = stoi(req.path.substr(10));
             string result = controller->getFilmById(filmId);
             return buildHTTPResponse(200, "OK", result);
@@ -134,6 +179,7 @@ private:
         
         // Log endpoints
         else if (req.path == "/api/logs" && req.method == "POST") {
+            setAuthFromToken(req.authToken);
             int filmId = parseJsonInt(req.body, "film_id");
             float rating = parseJsonFloat(req.body, "rating");
             string review = parseJsonField(req.body, "review_text");
@@ -155,6 +201,7 @@ private:
         
         // Interaction endpoints
         else if (req.path == "/api/interaction" && req.method == "POST") {
+            setAuthFromToken(req.authToken);
             int filmId = parseJsonInt(req.body, "film_id");
             int type = parseJsonInt(req.body, "type");
             

@@ -31,7 +31,7 @@ print("Reading CSV file...")
 films = []
 genre_set = set()
 
-with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
+with open('Some CSV/imdb_top_1000_updated.csv', 'r', encoding='utf-8') as csvfile:
     reader = csv.DictReader(csvfile)
     film_id = 1
     
@@ -56,22 +56,9 @@ with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
         except:
             rating = 7.0
         
-        # Clean and upgrade poster URL quality
-        poster_url = row['Poster_Link'].strip()
-        # Remove any trailing dots/ellipsis
-        if poster_url.endswith('...'):
-            poster_url = poster_url[:-3]
-        elif poster_url.endswith('..'):
-            poster_url = poster_url[:-2]
-        
-        # Upgrade Amazon image quality by modifying the URL parameters
-        # Replace the small size specification with larger one
-        if '_V1_UX67_CR0,0,67,98_AL_' in poster_url:
-            poster_url = poster_url.replace('_V1_UX67_CR0,0,67,98_AL_', '_V1_UX300_CR0,0,300,450_AL_')
-        
-        # Remove .jpg extension for better quality
-        if poster_url.endswith('.jpg'):
-            poster_url = poster_url[:-4]
+        # Get TMDB poster and backdrop URLs (already high quality from TMDB)
+        poster_url = row['Poster_Link'].strip() if row['Poster_Link'] else ''
+        backdrop_url = row.get('Backdrop_Link', '').strip()
         
         film_data = {
             'film_id': film_id,
@@ -82,6 +69,7 @@ with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
             'director': row['Director'],
             'genres': genre_list,
             'poster': poster_url,
+            'backdrop': backdrop_url,
             'overview': row['Overview'][:127] if row['Overview'] else 'No overview available',
             'rating': rating,
             'cast': cast_summary
@@ -122,22 +110,22 @@ for film in films:
         'director': film['director'],
         'genre_ids': film['genre_ids'],
         'poster_path': film['poster'],
-        'backdrop_path': '',
+        'backdrop_path': film['backdrop'],
         'tagline': film['overview'],
         'vote_average': film['rating'],
         'cast_summary': film['cast']
     })
 
-with open('data/films.json', 'w', encoding='utf-8') as f:
+with open('backend/data/films.json', 'w', encoding='utf-8') as f:
     json.dump(films_json, f, indent=2, ensure_ascii=False)
 
-print(f"Exported {len(films_json)} films to data/films.json")
+print(f"Exported {len(films_json)} films to backend/data/films.json")
 
 genres_json = [{'genre_id': gid, 'name': gname} for gname, gid in genre_map.items()]
-with open('data/genres.json', 'w', encoding='utf-8') as f:
+with open('backend/data/genres.json', 'w', encoding='utf-8') as f:
     json.dump(genres_json, f, indent=2, ensure_ascii=False)
 
-print(f"Exported {len(genres_json)} genres to data/genres.json")
+print(f"Exported {len(genres_json)} genres to backend/data/genres.json")
 
 users_data = [
     (1, 'admin', 'admin@cinelog.com', 'admin123', 'System Administrator', int(time.time()), True, 1),
@@ -160,10 +148,10 @@ users_json = [
     for uid, uname, email, pwd, bio, jdate, admin, avatar in users_data
 ]
 
-with open('data/users.json', 'w', encoding='utf-8') as f:
+with open('backend/data/users.json', 'w', encoding='utf-8') as f:
     json.dump(users_json, f, indent=2, ensure_ascii=False)
 
-print(f"Exported {len(users_json)} users to data/users.json")
+print(f"Exported {len(users_json)} users to backend/data/users.json")
 
 # Generate logs
 logs_json = []
@@ -204,7 +192,7 @@ for user_id in [2, 3, 4]:
         
         log_id += 1
 
-with open('data/logs.json', 'w', encoding='utf-8') as f:
+with open('backend/data/logs.json', 'w', encoding='utf-8') as f:
     json.dump(logs_json, f, indent=2, ensure_ascii=False)
 
 print(f"Generated {len(logs_json)} sample logs")

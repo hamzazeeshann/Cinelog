@@ -6,6 +6,20 @@ let currentUser = null;
 let allFilms = [];
 let currentRoute = 'home';
 
+// Toast notification system
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -98,11 +112,16 @@ async function handleAuth(e) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
+    if (!username || !password) {
+        showError('Username and password are required');
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ username, password })
         });
 
         const data = await response.json();
@@ -111,7 +130,7 @@ async function handleAuth(e) {
             localStorage.setItem('token', data.token);
             location.reload();
         } else {
-            showError(data.error || 'Authentication failed');
+            showError(data.error || 'Invalid username or password');
         }
     } catch (error) {
         showError('Network error: ' + error.message);
@@ -283,9 +302,9 @@ function createFilmCard(film) {
                 <div class="film-overlay-title">${film.title}</div>
                 <div class="film-overlay-year">${film.year}</div>
                 <div class="film-overlay-icons">
-                    <button class="icon-btn" title="Watch" onclick="event.stopPropagation(); openLogModal(${film.film_id})">👁</button>
-                    <button class="icon-btn" title="Like" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 1)">❤</button>
-                    <button class="icon-btn" title="Watchlist" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 2)">🕐</button>
+                    <button class="icon-btn" title="Watch" onclick="event.stopPropagation(); openLogModal(${film.film_id})">○</button>
+                    <button class="icon-btn" title="Like" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 1)">♥</button>
+                    <button class="icon-btn" title="Watchlist" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 2)">+</button>
                 </div>
             </div>
         </div>
@@ -295,7 +314,12 @@ function createFilmCard(film) {
 // MODULE C: FILM DETAIL PAGE
 async function showFilmDetailPage(filmId) {
     try {
-        const response = await fetch(`${API_BASE}/film/${filmId}`);
+        const headers = {};
+        if (currentUser) {
+            headers['Authorization'] = localStorage.getItem('token');
+        }
+        
+        const response = await fetch(`${API_BASE}/film/${filmId}`, { headers });
         const data = await response.json();
 
         if (!response.ok || !data.film) {
@@ -330,13 +354,13 @@ async function showFilmDetailPage(filmId) {
 
                         <div class="detail-actions">
                             <button class="action-btn ${film.watched ? 'active' : ''}" onclick="openLogModal(${film.film_id})">
-                                <span>👁</span> ${film.watched ? 'WATCHED' : 'MARK AS WATCHED'}
+                                <span>○</span> ${film.watched ? 'WATCHED' : 'MARK AS WATCHED'}
                             </button>
                             <button class="action-btn ${film.liked ? 'active' : ''}" onclick="toggleInteraction(${film.film_id}, 1)">
-                                <span>❤</span> ${film.liked ? 'LIKED' : 'LIKE'}
+                                <span>♥</span> ${film.liked ? 'LIKED' : 'LIKE'}
                             </button>
                             <button class="action-btn ${film.watchlisted ? 'active' : ''}" onclick="toggleInteraction(${film.film_id}, 2)">
-                                <span>🕐</span> ${film.watchlisted ? 'IN WATCHLIST' : 'WATCHLIST'}
+                                <span>+</span> ${film.watchlisted ? 'IN WATCHLIST' : 'WATCHLIST'}
                             </button>
                         </div>
 
@@ -406,7 +430,12 @@ function selectRating(rating) {
 
 async function submitLog(filmId) {
     if (selectedRating === 0) {
-        alert('Please select a rating');
+        showToast('Please select a rating', 'error');
+        return;
+    }
+
+    if (!currentUser) {
+        showToast('Please login first', 'error');
         return;
     }
 
@@ -415,8 +444,12 @@ async function submitLog(filmId) {
     try {
         const response = await fetch(`${API_BASE}/logs`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': localStorage.getItem('token')
+            },
             body: JSON.stringify({
+                user_id: currentUser.userId,
                 film_id: filmId,
                 rating: parseFloat(selectedRating),
                 review_text: review
@@ -425,16 +458,16 @@ async function submitLog(filmId) {
 
         if (response.ok) {
             document.querySelector('.modal-overlay').remove();
-            alert('✓ Film logged successfully!');
+            showToast('Film logged successfully!');
             if (currentRoute === 'film-detail') {
                 navigateTo('film-detail', { filmId });
             }
         } else {
             const data = await response.json();
-            alert('Failed: ' + (data.message || 'Unknown error'));
+            showToast(data.message || 'Failed to log film', 'error');
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
@@ -570,11 +603,23 @@ async function showWatchlistPage() {
 
 // Interactions
 async function toggleInteraction(filmId, type) {
+    if (!currentUser) {
+        showToast('Please login first', 'error');
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE}/interaction`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ film_id: filmId, type: type })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': localStorage.getItem('token')
+            },
+            body: JSON.stringify({
+                user_id: currentUser.userId,
+                film_id: filmId,
+                type: type
+            })
         });
 
         const data = await response.json();
@@ -582,14 +627,17 @@ async function toggleInteraction(filmId, type) {
         if (response.ok) {
             const action = data.action === 'added' ? 'Added to' : 'Removed from';
             const list = type === 1 ? 'favorites' : 'watchlist';
-            alert(`${action} ${list}!`);
+            showToast(`${action} ${list}`);
 
             if (currentRoute === 'film-detail') {
                 navigateTo('film-detail', { filmId });
             }
+        } else {
+            showToast(data.message || 'Action failed', 'error');
         }
     } catch (error) {
         console.error('Interaction error:', error);
+        showToast('Connection error', 'error');
     }
 }
 

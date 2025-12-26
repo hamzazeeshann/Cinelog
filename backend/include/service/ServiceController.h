@@ -84,6 +84,12 @@ public:
         delete interactionTree;
         delete searchTrie;
     }
+    
+    void setCurrentUser(int userId, bool loggedIn, bool isAdmin) {
+        currentUserId = userId;
+        isLoggedIn = loggedIn;
+        currentUserIsAdmin = isAdmin;
+    }
 
     // Authentication
     string loginUser(const string& username, const string& password) {
