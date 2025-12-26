@@ -1,375 +1,201 @@
-import requests
+import csv
+import json
 import struct
-import os
 import time
+import os
+import random
 
-# TMDB API Configuration
-TMDB_API_KEY = "b3ed21b7e1c2a8df61c48c8db1065831"
-TMDB_BASE_URL = "https://api.themoviedb.org/3"
+print("=" * 60)
+print("CINELOG Database Populator (CSV Edition)")
+print("=" * 60)
+print()
 
-def create_data_directory():
-    """Create data directory if it doesn't exist"""
-    if not os.path.exists('data'):
-        os.makedirs('data')
-        print("Created 'data' directory")
+os.makedirs('data', exist_ok=True)
 
-def fetch_popular_movies(num_movies=100):
-    """Fetch top popular movies from TMDB"""
-    print(f"Fetching top {num_movies} popular movies from TMDB...")
-    movies = []
-    page = 1
+def parse_runtime(runtime_str):
+    if not runtime_str or runtime_str == 'nan':
+        return 120
+    try:
+        return int(runtime_str.replace(' min', '').strip())
+    except:
+        return 120
+
+def parse_year(year_str):
+    try:
+        return int(str(year_str).strip()[:4])
+    except:
+        return 2000
+
+# Read CSV
+print("Reading CSV file...")
+films = []
+genre_set = set()
+
+with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
+    reader = csv.DictReader(csvfile)
+    film_id = 1
     
-    while len(movies) < num_movies:
-        url = f"{TMDB_BASE_URL}/movie/popular"
-        params = {
-            'api_key': TMDB_API_KEY,
-            'page': page
-        }
+    for row in reader:
+        genres_str = row['Genre']
+        genre_list = [g.strip() for g in genres_str.split(',')[:3]]
+        while len(genre_list) < 3:
+            genre_list.append('Unknown')
+        
+        for g in genre_list:
+            genre_set.add(g)
+        
+        cast_parts = []
+        for i in range(1, 5):
+            star = row.get(f'Star{i}', '').strip()
+            if star:
+                cast_parts.append(star)
+        cast_summary = ', '.join(cast_parts) if cast_parts else 'Unknown'
         
         try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            
-            for movie in data['results']:
-                if len(movies) >= num_movies:
-                    break
-                
-                # Fetch detailed movie info
-                detail_url = f"{TMDB_BASE_URL}/movie/{movie['id']}"
-                detail_params = {
-                    'api_key': TMDB_API_KEY,
-                    'append_to_response': 'credits'
-                }
-                
-                detail_response = requests.get(detail_url, params=detail_params)
-                if detail_response.status_code == 200:
-                    detail_data = detail_response.json()
-                    movies.append(detail_data)
-                    print(f"  Fetched: {detail_data['title']} ({detail_data.get('release_date', 'N/A')[:4]})")
-                
-                time.sleep(0.25)  # Rate limiting
-            
-            page += 1
-            
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching movies: {e}")
-            break
-    
-    return movies
-
-def get_cast_summary(credits):
-    """Extract top 5 cast members"""
-    if 'cast' not in credits:
-        return "Unknown"
-    
-    cast_list = credits['cast'][:5]
-    cast_names = [actor['name'] for actor in cast_list]
-    return ', '.join(cast_names)
-
-def get_director(credits):
-    """Extract director name"""
-    if 'crew' not in credits:
-        return "Unknown"
-    
-    for member in credits['crew']:
-        if member['job'] == 'Director':
-            return member['name']
-    return "Unknown"
-
-def get_top_genres(genres):
-    """Extract top 3 genre IDs"""
-    genre_ids = [0, 0, 0]
-    for i, genre in enumerate(genres[:3]):
-        genre_ids[i] = genre['id']
-    return genre_ids
-
-def write_film_binary(film_data, film_id):
-    """
-    Write a Film struct to binary
-    struct Film {
-        int film_id;           // 4 bytes
-        int tmdb_id;           // 4 bytes
-        char title[64];        // 64 bytes
-        int release_year;      // 4 bytes
-        int runtime;           // 4 bytes
-        char cast_summary[256];// 256 bytes
-        char director[64];     // 64 bytes
-        int genre_ids[3];      // 12 bytes (3 * 4)
-    }
-    Total: 412 bytes
-    """
-    title = film_data['title'][:63].encode('utf-8', errors='ignore')
-    title = title + b'\x00' * (64 - len(title))
-    
-    release_year = int(film_data.get('release_date', '2000')[:4]) if film_data.get('release_date') else 2000
-    runtime = film_data.get('runtime', 0) or 0
-    
-    cast = get_cast_summary(film_data.get('credits', {}))[:255].encode('utf-8', errors='ignore')
-    cast = cast + b'\x00' * (256 - len(cast))
-    
-    director_name = get_director(film_data.get('credits', {}))[:63].encode('utf-8', errors='ignore')
-    director_name = director_name + b'\x00' * (64 - len(director_name))
-    
-    genre_ids = get_top_genres(film_data.get('genres', []))
-    
-    # Pack the struct
-    data = struct.pack('i', film_id)  # film_id
-    data += struct.pack('i', film_data['id'])  # tmdb_id
-    data += title  # title[64]
-    data += struct.pack('i', release_year)  # release_year
-    data += struct.pack('i', runtime)  # runtime
-    data += cast  # cast_summary[256]
-    data += director_name  # director[64]
-    data += struct.pack('iii', genre_ids[0], genre_ids[1], genre_ids[2])  # genre_ids[3]
-    
-    return data
-
-def write_user_binary(user_id, username, email, password_hash, bio, join_date, is_admin):
-    """
-    Write a User struct to binary
-    struct User {
-        int user_id;           // 4 bytes
-        char username[32];     // 32 bytes
-        char email[64];        // 64 bytes
-        char password_hash[64];// 64 bytes
-        char bio[256];         // 256 bytes
-        long join_date;        // 8 bytes
-        bool isAdmin;          // 1 byte
-    }
-    Total: 429 bytes
-    """
-    username_bytes = username[:31].encode('utf-8', errors='ignore')
-    username_bytes = username_bytes + b'\x00' * (32 - len(username_bytes))
-    
-    email_bytes = email[:63].encode('utf-8', errors='ignore')
-    email_bytes = email_bytes + b'\x00' * (64 - len(email_bytes))
-    
-    password_bytes = password_hash[:63].encode('utf-8', errors='ignore')
-    password_bytes = password_bytes + b'\x00' * (64 - len(password_bytes))
-    
-    bio_bytes = bio[:255].encode('utf-8', errors='ignore')
-    bio_bytes = bio_bytes + b'\x00' * (256 - len(bio_bytes))
-    
-    data = struct.pack('i', user_id)  # user_id
-    data += username_bytes  # username[32]
-    data += email_bytes  # email[64]
-    data += password_bytes  # password_hash[64]
-    data += bio_bytes  # bio[256]
-    data += struct.pack('q', join_date)  # join_date (long = 8 bytes)
-    data += struct.pack('?', is_admin)  # isAdmin (bool = 1 byte)
-    
-    return data
-
-def write_log_binary(log_id, user_id, film_id, rating, review, watch_date):
-    """
-    Write a Log struct to binary
-    struct Log {
-        int log_id;            // 4 bytes
-        int user_id;           // 4 bytes
-        int film_id;           // 4 bytes
-        float rating;          // 4 bytes
-        char review_preview[256]; // 256 bytes
-        long watch_date;       // 8 bytes
-    }
-    Total: 280 bytes
-    """
-    review_bytes = review[:255].encode('utf-8', errors='ignore')
-    review_bytes = review_bytes + b'\x00' * (256 - len(review_bytes))
-    
-    data = struct.pack('i', log_id)  # log_id
-    data += struct.pack('i', user_id)  # user_id
-    data += struct.pack('i', film_id)  # film_id
-    data += struct.pack('f', rating)  # rating
-    data += review_bytes  # review_preview[256]
-    data += struct.pack('q', watch_date)  # watch_date
-    
-    return data
-
-def write_genre_binary(genre_id, name):
-    """
-    Write a Genre struct to binary
-    struct Genre {
-        int genre_id;          // 4 bytes
-        char name[32];         // 32 bytes
-    }
-    Total: 36 bytes
-    """
-    name_bytes = name[:31].encode('utf-8', errors='ignore')
-    name_bytes = name_bytes + b'\x00' * (32 - len(name_bytes))
-    
-    data = struct.pack('i', genre_id)  # genre_id
-    data += name_bytes  # name[32]
-    
-    return data
-
-def initialize_btree_file(filename):
-    """Initialize B-Tree file with header"""
-    with open(filename, 'wb') as f:
-        root_pos = 16  # After the two longs
-        next_pos = 16
-        f.write(struct.pack('q', root_pos))  # rootPos (long = 8 bytes)
-        f.write(struct.pack('q', next_pos))  # nextPos (long = 8 bytes)
-
-def populate_database():
-    """Main function to populate all database files"""
-    print("=" * 60)
-    print("CINELOG Database Populator")
-    print("=" * 60)
-    print()
-    
-    create_data_directory()
-    
-    # Initialize B-Tree files
-    print("Initializing database files...")
-    initialize_btree_file('data/users.bin')
-    initialize_btree_file('data/films.bin')
-    initialize_btree_file('data/logs.bin')
-    initialize_btree_file('data/genres.bin')
-    initialize_btree_file('data/lists.bin')
-    print("Database files initialized")
-    print()
-    
-    # Create dummy users
-    print("Creating users...")
-    users_data = [
-        (1, "admin", "admin@cinelog.com", "admin123", "System Administrator", int(time.time()), True),
-        (2, "john_doe", "john@example.com", "password123", "Movie enthusiast", int(time.time()), False),
-        (3, "jane_smith", "jane@example.com", "password123", "Film critic", int(time.time()), False),
-        (4, "cinephile", "cinephile@example.com", "password123", "I love cinema!", int(time.time()), False),
-    ]
-    
-    # Note: These records won't be directly inserted into B-Tree format
-    # They need to be inserted through the C++ backend after it starts
-    # For now, we'll just prepare the data
-    print(f"  Created {len(users_data)} users")
-    print()
-    
-    # Fetch and write films
-    print("THIS STEP TAKES A WHILE - Fetching films from TMDB...")
-    print("Note: Rate limiting in place (0.25s per request)")
-    print()
-    
-    movies = fetch_popular_movies(50)  # Fetch 50 movies to start
-    
-    print()
-    print(f"Successfully fetched {len(movies)} movies")
-    print()
-    
-    # Create genres from collected data
-    print("Extracting genres...")
-    genre_map = {}
-    for movie in movies:
-        for genre in movie.get('genres', []):
-            genre_map[genre['id']] = genre['name']
-    
-    print(f"  Found {len(genre_map)} unique genres")
-    print()
-    
-    # Write films to a JSON file for easy import via C++ backend
-    import json
-    
-    films_json = []
-    for i, movie in enumerate(movies, start=1):
-        film_data = {
-            'film_id': i,
-            'tmdb_id': movie['id'],
-            'title': movie['title'],
-            'release_year': int(movie.get('release_date', '2000')[:4]) if movie.get('release_date') else 2000,
-            'runtime': movie.get('runtime', 0) or 0,
-            'cast': get_cast_summary(movie.get('credits', {})),
-            'director': get_director(movie.get('credits', {})),
-            'genre_ids': get_top_genres(movie.get('genres', []))
-        }
-        films_json.append(film_data)
-    
-    with open('data/films.json', 'w', encoding='utf-8') as f:
-        json.dump(films_json, f, indent=2, ensure_ascii=False)
-    
-    print("Films exported to data/films.json")
-    
-    genres_json = [{'genre_id': gid, 'name': gname} for gid, gname in genre_map.items()]
-    with open('data/genres.json', 'w', encoding='utf-8') as f:
-        json.dump(genres_json, f, indent=2, ensure_ascii=False)
-    
-    print("Genres exported to data/genres.json")
-    
-    users_json = [
-        {
-            'user_id': uid,
-            'username': uname,
-            'email': email,
-            'password_hash': pwd,
-            'bio': bio,
-            'join_date': jdate,
-            'isAdmin': admin
-        }
-        for uid, uname, email, pwd, bio, jdate, admin in users_data
-    ]
-    
-    with open('data/users.json', 'w', encoding='utf-8') as f:
-        json.dump(users_json, f, indent=2, ensure_ascii=False)
-    
-    print("Users exported to data/users.json")
-    print()
-    
-    # Generate some sample logs
-    import random
-    logs_json = []
-    log_id = 1
-    
-    print("Generating sample logs...")
-    for user_id in [2, 3, 4]:  # Non-admin users
-        num_logs = random.randint(5, 15)
-        watched_films = random.sample(range(1, min(len(movies) + 1, 51)), num_logs)
+            rating = float(row['IMDB_Rating'])
+        except:
+            rating = 7.0
         
-        for film_id in watched_films:
-            log_data = {
-                'log_id': log_id,
-                'user_id': user_id,
-                'film_id': film_id,
-                'rating': round(random.uniform(2.0, 5.0), 1),
-                'review': random.choice([
-                    "Great movie!",
-                    "Loved it!",
-                    "Amazing cinematography",
-                    "Brilliant performances",
-                    "A masterpiece",
-                    "Really enjoyed this",
-                    "Incredible story",
-                    ""
-                ]),
-                'watch_date': int(time.time()) - random.randint(0, 365 * 24 * 3600)
-            }
-            logs_json.append(log_data)
-            log_id += 1
-    
-    with open('data/logs.json', 'w', encoding='utf-8') as f:
-        json.dump(logs_json, f, indent=2, ensure_ascii=False)
-    
-    print(f"Generated {len(logs_json)} sample logs")
-    print("Logs exported to data/logs.json")
-    print()
-    
-    print("=" * 60)
-    print("Database population complete!")
-    print("=" * 60)
-    print()
-    print("IMPORTANT: JSON files have been created in the 'data' folder.")
-    print("The C++ backend will need to read these JSON files and insert")
-    print("the records into the B-Tree binary files when it starts.")
-    print()
-    print("Files created:")
-    print("  - data/users.json")
-    print("  - data/films.json")
-    print("  - data/genres.json")
-    print("  - data/logs.json")
-    print()
+        film_data = {
+            'film_id': film_id,
+            'tmdb_id': film_id * 100,
+            'title': row['Series_Title'],
+            'year': parse_year(row['Released_Year']),
+            'runtime': parse_runtime(row['Runtime']),
+            'director': row['Director'],
+            'genres': genre_list,
+            'poster': row['Poster_Link'],
+            'overview': row['Overview'][:127] if row['Overview'] else 'No overview available',
+            'rating': rating,
+            'cast': cast_summary
+        }
+        
+        films.append(film_data)
+        film_id += 1
 
-if __name__ == "__main__":
-    try:
-        populate_database()
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
+print(f"Loaded {len(films)} films from CSV")
+
+# Create genre mapping
+print("Creating genre mapping...")
+genre_map = {}
+genre_id = 1
+for genre_name in sorted(genre_set):
+    genre_map[genre_name] = genre_id
+    genre_id += 1
+
+for film in films:
+    genre_ids = []
+    for genre_name in film['genres']:
+        genre_ids.append(genre_map.get(genre_name, 0))
+    film['genre_ids'] = genre_ids
+
+print(f"Created {len(genre_map)} genres")
+
+# Export JSON
+print("Exporting JSON files...")
+
+films_json = []
+for film in films:
+    films_json.append({
+        'film_id': film['film_id'],
+        'tmdb_id': film['tmdb_id'],
+        'title': film['title'],
+        'year': film['year'],
+        'runtime': film['runtime'],
+        'director': film['director'],
+        'genre_ids': film['genre_ids'],
+        'poster_path': film['poster'],
+        'backdrop_path': '',
+        'tagline': film['overview'],
+        'vote_average': film['rating'],
+        'cast_summary': film['cast']
+    })
+
+with open('data/films.json', 'w', encoding='utf-8') as f:
+    json.dump(films_json, f, indent=2, ensure_ascii=False)
+
+print(f"Exported {len(films_json)} films to data/films.json")
+
+genres_json = [{'genre_id': gid, 'name': gname} for gname, gid in genre_map.items()]
+with open('data/genres.json', 'w', encoding='utf-8') as f:
+    json.dump(genres_json, f, indent=2, ensure_ascii=False)
+
+print(f"Exported {len(genres_json)} genres to data/genres.json")
+
+users_data = [
+    (1, 'admin', 'admin@cinelog.com', 'admin123', 'System Administrator', int(time.time()), True, 1),
+    (2, 'alice', 'alice@cinelog.com', 'password123', 'Film enthusiast and critic', int(time.time()), False, 2),
+    (3, 'bob', 'bob@cinelog.com', 'password123', 'Movie lover', int(time.time()), False, 3),
+    (4, 'charlie', 'charlie@cinelog.com', 'password123', 'Cinema fan', int(time.time()), False, 4)
+]
+
+users_json = [
+    {
+        'user_id': uid,
+        'username': uname,
+        'email': email,
+        'password_hash': pwd,
+        'bio': bio,
+        'join_date': jdate,
+        'isAdmin': admin,
+        'avatar_id': avatar
+    }
+    for uid, uname, email, pwd, bio, jdate, admin, avatar in users_data
+]
+
+with open('data/users.json', 'w', encoding='utf-8') as f:
+    json.dump(users_json, f, indent=2, ensure_ascii=False)
+
+print(f"Exported {len(users_json)} users to data/users.json")
+
+# Generate logs
+logs_json = []
+log_id = 1
+
+print("Generating sample logs...")
+
+reviews = [
+    "Absolutely brilliant! A masterpiece.",
+    "One of the best films I've ever seen.",
+    "Great cinematography and acting.",
+    "A must-watch for all film lovers.",
+    "Powerful and emotional.",
+    "Perfect blend of story and visuals.",
+    "An unforgettable experience.",
+    "Simply outstanding!",
+    "Exceeded all expectations.",
+    "A timeless classic."
+]
+
+for user_id in [2, 3, 4]:
+    num_logs = random.randint(15, 30)
+    watched_films = random.sample(films[:300], min(num_logs, 300))
+    
+    for film in watched_films:
+        rating = random.choice([3.5, 4.0, 4.5, 5.0])
+        review = random.choice(reviews)
+        watch_date = int(time.time()) - random.randint(0, 365*24*60*60)
+        
+        logs_json.append({
+            'log_id': log_id,
+            'user_id': user_id,
+            'film_id': film['film_id'],
+            'rating': rating,
+            'review_text': review,
+            'log_date': watch_date
+        })
+        
+        log_id += 1
+
+with open('data/logs.json', 'w', encoding='utf-8') as f:
+    json.dump(logs_json, f, indent=2, ensure_ascii=False)
+
+print(f"Generated {len(logs_json)} sample logs")
+print()
+print("=" * 60)
+print("Complete! Created:")
+print(f"  - {len(users_json)} users")
+print(f"  - {len(films_json)} films")
+print(f"  - {len(genres_json)} genres")
+print(f"  - {len(logs_json)} logs")
+print("=" * 60)

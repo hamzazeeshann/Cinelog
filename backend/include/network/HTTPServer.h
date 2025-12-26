@@ -4,58 +4,35 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <string>
-#include <sstream>
 #include <iostream>
-#include <map>
+#include <sstream>
 
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
+struct HTTPRequest {
+    string method;
+    string path;
+    string body;
+};
+
 class HTTPServer {
 private:
-    ServiceController* controller;
-    SOCKET serverSocket;
     int port;
+    SOCKET serverSocket;
+    ServiceController* controller;
     bool running;
-
-    struct HTTPRequest {
-        string method;
-        string path;
-        map<string, string> headers;
-        string body;
-    };
 
     HTTPRequest parseRequest(const string& rawRequest) {
         HTTPRequest req;
         istringstream stream(rawRequest);
-        string line;
+        stream >> req.method >> req.path;
         
-        // Parse request line
-        if (getline(stream, line)) {
-            istringstream lineStream(line);
-            lineStream >> req.method >> req.path;
+        size_t bodyStart = rawRequest.find("\r\n\r\n");
+        if (bodyStart != string::npos) {
+            req.body = rawRequest.substr(bodyStart + 4);
         }
-        
-        // Parse headers
-        while (getline(stream, line) && line != "\r" && !line.empty()) {
-            size_t colonPos = line.find(':');
-            if (colonPos != string::npos) {
-                string key = line.substr(0, colonPos);
-                string value = line.substr(colonPos + 2);
-                if (!value.empty() && value.back() == '\r') {
-                    value.pop_back();
-                }
-                req.headers[key] = value;
-            }
-        }
-        
-        // Parse body
-        string bodyContent;
-        while (getline(stream, line)) {
-            bodyContent += line;
-        }
-        req.body = bodyContent;
         
         return req;
     }
@@ -64,82 +41,58 @@ private:
         size_t pos = json.find("\"" + field + "\"");
         if (pos == string::npos) return "";
         
-        pos = json.find(":", pos);
-        if (pos == string::npos) return "";
+        size_t valueStart = json.find(":", pos) + 1;
+        while (json[valueStart] == ' ' || json[valueStart] == '\"') valueStart++;
         
-        pos = json.find("\"", pos);
-        if (pos == string::npos) return "";
+        size_t valueEnd = valueStart;
+        if (json[valueStart - 1] == '\"') {
+            valueEnd = json.find("\"", valueStart);
+        } else {
+            valueEnd = json.find_first_of(",}", valueStart);
+        }
         
-        size_t endPos = json.find("\"", pos + 1);
-        if (endPos == string::npos) return "";
-        
-        return json.substr(pos + 1, endPos - pos - 1);
+        return json.substr(valueStart, valueEnd - valueStart);
     }
 
     int parseJsonInt(const string& json, const string& field) {
-        size_t pos = json.find("\"" + field + "\"");
-        if (pos == string::npos) return 0;
-        
-        pos = json.find(":", pos);
-        if (pos == string::npos) return 0;
-        
-        // Skip whitespace
-        pos++;
-        while (pos < json.length() && (json[pos] == ' ' || json[pos] == '\t')) {
-            pos++;
+        string value = parseJsonField(json, field);
+        try {
+            return stoi(value);
+        } catch (...) {
+            return 0;
         }
-        
-        string numStr;
-        while (pos < json.length() && (isdigit(json[pos]) || json[pos] == '-' || json[pos] == '.')) {
-            numStr += json[pos];
-            pos++;
-        }
-        
-        return numStr.empty() ? 0 : stoi(numStr);
     }
 
     float parseJsonFloat(const string& json, const string& field) {
-        size_t pos = json.find("\"" + field + "\"");
-        if (pos == string::npos) return 0.0f;
-        
-        pos = json.find(":", pos);
-        if (pos == string::npos) return 0.0f;
-        
-        pos++;
-        while (pos < json.length() && (json[pos] == ' ' || json[pos] == '\t')) {
-            pos++;
+        string value = parseJsonField(json, field);
+        try {
+            return stof(value);
+        } catch (...) {
+            return 0.0f;
         }
-        
-        string numStr;
-        while (pos < json.length() && (isdigit(json[pos]) || json[pos] == '-' || json[pos] == '.')) {
-            numStr += json[pos];
-            pos++;
-        }
-        
-        return numStr.empty() ? 0.0f : stof(numStr);
     }
 
-    string buildHTTPResponse(int statusCode, const string& statusText, const string& body, const string& contentType = "application/json") {
+    string buildHTTPResponse(int statusCode, const string& statusText, const string& body) {
         ostringstream response;
         response << "HTTP/1.1 " << statusCode << " " << statusText << "\r\n";
-        response << "Content-Type: " << contentType << "\r\n";
+        response << "Content-Type: application/json\r\n";
         response << "Content-Length: " << body.length() << "\r\n";
         response << "Access-Control-Allow-Origin: *\r\n";
-        response << "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n";
+        response << "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
         response << "Access-Control-Allow-Headers: Content-Type\r\n";
-        response << "Connection: close\r\n";
         response << "\r\n";
         response << body;
         return response.str();
     }
 
     string handleRequest(const HTTPRequest& req) {
-        // Handle CORS preflight
+        cout << req.method << " " << req.path << endl;
+
         if (req.method == "OPTIONS") {
             return buildHTTPResponse(200, "OK", "");
         }
 
-        // Route handling
+        // Authentication endpoints
         if (req.path == "/api/login" && req.method == "POST") {
             string username = parseJsonField(req.body, "username");
             string password = parseJsonField(req.body, "password");
@@ -154,76 +107,89 @@ private:
             string result = controller->registerUser(username, email, password, bio);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path == "/api/logout" && req.method == "POST") {
-            string result = controller->logoutUser();
-            return buildHTTPResponse(200, "OK", result);
-        }
+        
+        // Film endpoints
         else if (req.path == "/api/films" && req.method == "GET") {
             string result = controller->getAllFilms();
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path.find("/api/films/") == 0 && req.method == "GET") {
-            int filmId = stoi(req.path.substr(11));
+        else if (req.path.find("/api/film/") == 0 && req.method == "GET") {
+            int filmId = stoi(req.path.substr(10));
             string result = controller->getFilmById(filmId);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path == "/api/admin/add_film" && req.method == "POST") {
-            if (!controller->isCurrentUserAdmin()) {
-                return buildHTTPResponse(403, "Forbidden", "{\"status\":\"error\",\"message\":\"Admin only\"}");
+        else if (req.path.find("/api/search?q=") == 0 && req.method == "GET") {
+            size_t qPos = req.path.find("q=");
+            if (qPos != string::npos) {
+                string query = req.path.substr(qPos + 2);
+                size_t pos = 0;
+                while ((pos = query.find("%20")) != string::npos) {
+                    query.replace(pos, 3, " ");
+                }
+                string result = controller->searchFilms(query);
+                return buildHTTPResponse(200, "OK", result);
             }
-            
-            string title = parseJsonField(req.body, "title");
-            int tmdbId = parseJsonInt(req.body, "tmdb_id");
-            int year = parseJsonInt(req.body, "release_year");
-            int runtime = parseJsonInt(req.body, "runtime");
-            string cast = parseJsonField(req.body, "cast");
-            string director = parseJsonField(req.body, "director");
-            int g1 = parseJsonInt(req.body, "genre_id_1");
-            int g2 = parseJsonInt(req.body, "genre_id_2");
-            int g3 = parseJsonInt(req.body, "genre_id_3");
-            
-            string result = controller->addFilm(title, tmdbId, year, runtime, cast, director, g1, g2, g3);
-            return buildHTTPResponse(200, "OK", result);
+            return buildHTTPResponse(400, "Bad Request", "{\"status\":\"error\",\"message\":\"Invalid query\"}");
         }
-        else if (req.path == "/api/admin/delete_film" && req.method == "POST") {
-            if (!controller->isCurrentUserAdmin()) {
-                return buildHTTPResponse(403, "Forbidden", "{\"status\":\"error\",\"message\":\"Admin only\"}");
-            }
-            
-            int filmId = parseJsonInt(req.body, "film_id");
-            string result = controller->deleteFilm(filmId);
-            return buildHTTPResponse(200, "OK", result);
-        }
-        else if (req.path == "/api/log_entry" && req.method == "POST") {
+        
+        // Log endpoints
+        else if (req.path == "/api/logs" && req.method == "POST") {
             int filmId = parseJsonInt(req.body, "film_id");
             float rating = parseJsonFloat(req.body, "rating");
-            string review = parseJsonField(req.body, "review");
+            string review = parseJsonField(req.body, "review_text");
             
             string result = controller->addLog(filmId, rating, review);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path.find("/api/logs/user/") == 0 && req.method == "GET") {
-            int userId = stoi(req.path.substr(15));
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/logs") != string::npos && req.method == "GET") {
+            size_t userStart = 10; // "/api/user/"
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
             string result = controller->getUserLogs(userId);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path == "/api/admin/users" && req.method == "GET") {
-            if (!controller->isCurrentUserAdmin()) {
-                return buildHTTPResponse(403, "Forbidden", "{\"status\":\"error\",\"message\":\"Admin only\"}");
-            }
-            
-            string result = controller->getAllUsers();
+        else if (req.path == "/api/logs/recent" && req.method == "GET") {
+            string result = controller->getRecentLogs(10);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path == "/api/admin/delete_user" && req.method == "POST") {
-            if (!controller->isCurrentUserAdmin()) {
-                return buildHTTPResponse(403, "Forbidden", "{\"status\":\"error\",\"message\":\"Admin only\"}");
-            }
+        
+        // Interaction endpoints
+        else if (req.path == "/api/interaction" && req.method == "POST") {
+            int filmId = parseJsonInt(req.body, "film_id");
+            int type = parseJsonInt(req.body, "type");
             
-            int userId = parseJsonInt(req.body, "user_id");
-            string result = controller->deleteUser(userId);
+            string result = controller->toggleInteraction(filmId, type);
             return buildHTTPResponse(200, "OK", result);
         }
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/watchlist") != string::npos && req.method == "GET") {
+            size_t userStart = 10;
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
+            string result = controller->getUserWatchlist(userId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/favorites") != string::npos && req.method == "GET") {
+            size_t userStart = 10;
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
+            string result = controller->getUserFavorites(userId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/profile") != string::npos && req.method == "GET") {
+            size_t userStart = 10;
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
+            string result = controller->getUserProfile(userId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        
+        // Home data
+        else if (req.path == "/api/home_data" && req.method == "GET") {
+            string result = controller->getHomeData();
+            return buildHTTPResponse(200, "OK", result);
+        }
+        
+        // Genres
         else if (req.path == "/api/genres" && req.method == "GET") {
             string result = controller->getAllGenres();
             return buildHTTPResponse(200, "OK", result);
@@ -239,19 +205,21 @@ public:
     }
 
     ~HTTPServer() {
-        stop();
+        if (serverSocket != INVALID_SOCKET) {
+            closesocket(serverSocket);
+        }
+        WSACleanup();
         delete controller;
     }
 
     bool start() {
         WSADATA wsaData;
-        int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-        if (result != 0) {
-            cerr << "WSAStartup failed: " << result << endl;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+            cerr << "WSAStartup failed" << endl;
             return false;
         }
 
-        serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocket == INVALID_SOCKET) {
             cerr << "Socket creation failed" << endl;
             WSACleanup();
@@ -277,8 +245,8 @@ public:
             return false;
         }
 
-        running = true;
         cout << "Server started on port " << port << endl;
+        running = true;
         return true;
     }
 
@@ -286,35 +254,21 @@ public:
         while (running) {
             SOCKET clientSocket = accept(serverSocket, NULL, NULL);
             if (clientSocket == INVALID_SOCKET) {
-                if (running) {
-                    cerr << "Accept failed" << endl;
-                }
                 continue;
             }
 
-            char buffer[8192];
-            int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+            char buffer[4096];
+            int bytesReceived = recv(clientSocket, buffer, 4096, 0);
+            
             if (bytesReceived > 0) {
-                buffer[bytesReceived] = '\0';
-                string rawRequest(buffer);
-                
+                string rawRequest(buffer, bytesReceived);
                 HTTPRequest req = parseRequest(rawRequest);
-                cout << req.method << " " << req.path << endl;
-                
                 string response = handleRequest(req);
+                
                 send(clientSocket, response.c_str(), response.length(), 0);
             }
 
             closesocket(clientSocket);
         }
-    }
-
-    void stop() {
-        running = false;
-        if (serverSocket != INVALID_SOCKET) {
-            closesocket(serverSocket);
-            serverSocket = INVALID_SOCKET;
-        }
-        WSACleanup();
     }
 };

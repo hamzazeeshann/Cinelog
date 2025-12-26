@@ -1,533 +1,644 @@
-// Cinelog Frontend Application
+// Cinelog v2.0 - Complete Implementation
+
 const API_BASE = 'http://localhost:8080/api';
 
-// State Management
 let currentUser = null;
-let currentFilm = null;
-let selectedRating = 0;
+let allFilms = [];
+let currentRoute = 'home';
 
-// View Management
-function showView(viewId) {
-    document.querySelectorAll('.view').forEach(view => {
-        view.classList.remove('active');
+// Initialization
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    document.querySelectorAll('[data-route]').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(el.dataset.route);
+        });
     });
-    document.getElementById(viewId).classList.add('active');
-}
 
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = `toast ${type} show`;
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    document.querySelector('.search-trigger')?.addEventListener('click', openSearch);
+    document.querySelector('.search-close')?.addEventListener('click', closeSearch);
+    document.getElementById('searchInput')?.addEventListener('input', handleSearch);
+    document.getElementById('searchOverlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'searchOverlay') closeSearch();
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
 }
 
 // Authentication
-async function login() {
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!username || !password) {
-        showToast('Please fill in all fields', 'error');
+async function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showLoginPage();
         return;
     }
-    
+
+    try {
+        currentUser = parseToken(token);
+        document.getElementById('navUsername').textContent = currentUser.username;
+        document.getElementById('navbar').classList.add('visible');
+        await loadAllFilms();
+        navigateTo('home');
+    } catch (error) {
+        console.error('Auth failed:', error);
+        localStorage.removeItem('token');
+        showLoginPage();
+    }
+}
+
+function parseToken(token) {
+    const parts = token.split(':');
+    return {
+        userId: parseInt(parts[0]),
+        username: parts[1],
+        isAdmin: parts[2] === '1'
+    };
+}
+
+function showLoginPage() {
+    document.getElementById('navbar').classList.remove('visible');
+    document.getElementById('app').innerHTML = `
+        <div class="login-container">
+            <div class="login-box">
+                <h1>CINELOG</h1>
+                <div id="authError" class="error-message" style="display: none;"></div>
+                <form id="authForm">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">SIGN IN</button>
+                </form>
+                <div class="toggle-auth">
+                    <span>New user? Registration creates account automatically</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('authForm').addEventListener('submit', handleAuth);
+}
+
+async function handleAuth(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
     try {
         const response = await fetch(`${API_BASE}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, email, password })
         });
-        
+
         const data = await response.json();
-        
-        if (data.status === 'success') {
-            currentUser = {
-                user_id: data.user_id,
-                username: data.username,
-                role: data.role
-            };
-            
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            
-            document.getElementById('navbar').style.display = 'block';
-            
-            if (data.role === 'admin') {
-                document.getElementById('navAdmin').style.display = 'block';
-            }
-            
-            showView('homeView');
-            loadFilms();
-            showToast(`Welcome back, ${data.username}!`);
+
+        if (response.ok && data.token) {
+            localStorage.setItem('token', data.token);
+            location.reload();
         } else {
-            showToast(data.message || 'Login failed', 'error');
+            showError(data.error || 'Authentication failed');
         }
     } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
+        showError('Network error: ' + error.message);
     }
 }
 
-async function register() {
-    const username = document.getElementById('regUsername').value;
-    const email = document.getElementById('regEmail').value;
-    const password = document.getElementById('regPassword').value;
-    const bio = document.getElementById('regBio').value;
-    
-    if (!username || !email || !password) {
-        showToast('Please fill in all required fields', 'error');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password, bio })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            showToast('Account created! Please log in.');
-            showView('loginView');
-        } else {
-            showToast(data.message || 'Registration failed', 'error');
-        }
-    } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
-    }
+function showError(message) {
+    const errorEl = document.getElementById('authError');
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
 }
 
 function logout() {
+    localStorage.removeItem('token');
     currentUser = null;
-    localStorage.removeItem('user');
-    document.getElementById('navbar').style.display = 'none';
-    document.getElementById('navAdmin').style.display = 'none';
-    showView('loginView');
-    showToast('Logged out successfully');
+    location.reload();
 }
 
-// Film Management
-async function loadFilms() {
+// Data Loading
+async function loadAllFilms() {
     try {
         const response = await fetch(`${API_BASE}/films`);
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            displayFilms(data.films);
+        if (response.ok) {
+            const data = await response.json();
+            allFilms = data.films || [];
         }
     } catch (error) {
-        showToast('Failed to load films', 'error');
-        console.error(error);
+        console.error('Failed to load films:', error);
     }
 }
 
-function displayFilms(films) {
-    const grid = document.getElementById('filmGrid');
-    grid.innerHTML = '';
-    
-    films.forEach(film => {
-        const card = document.createElement('div');
-        card.className = 'film-card';
-        card.onclick = () => openFilmModal(film);
-        
-        const posterUrl = `https://image.tmdb.org/t/p/w500${getPosterPath(film.tmdb_id)}`;
-        
-        card.innerHTML = `
-            <img class="film-poster" src="${posterUrl}" 
-                 alt="${film.title}" 
-                 onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(film.title)}'" />
-            <div class="film-title">${film.title} (${film.release_year})</div>
-        `;
-        
-        grid.appendChild(card);
+// Routing
+function navigateTo(route, params = {}) {
+    currentRoute = route;
+
+    document.querySelectorAll('[data-route]').forEach(el => {
+        el.classList.toggle('active', el.dataset.route === route);
     });
-}
 
-function getPosterPath(tmdbId) {
-    // This is a placeholder - in production, you'd fetch this from TMDB
-    return `/movie/${tmdbId}.jpg`;
-}
-
-function openFilmModal(film) {
-    currentFilm = film;
-    selectedRating = 0;
-    
-    document.getElementById('modalTitle').textContent = film.title;
-    document.getElementById('modalYear').textContent = `Year: ${film.release_year}`;
-    document.getElementById('modalRuntime').textContent = `Runtime: ${film.runtime} minutes`;
-    document.getElementById('modalDirector').innerHTML = `<strong>Director:</strong> ${film.director}`;
-    document.getElementById('modalCast').innerHTML = `<strong>Cast:</strong> ${film.cast}`;
-    
-    const posterUrl = `https://image.tmdb.org/t/p/w500${getPosterPath(film.tmdb_id)}`;
-    document.getElementById('modalPoster').src = posterUrl;
-    document.getElementById('modalPoster').onerror = function() {
-        this.src = `https://via.placeholder.com/300x450?text=${encodeURIComponent(film.title)}`;
-    };
-    
-    // Reset stars
-    document.querySelectorAll('.star-rating span').forEach(star => {
-        star.classList.remove('active');
-    });
-    document.getElementById('reviewText').value = '';
-    
-    document.getElementById('movieModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('movieModal').classList.remove('active');
-    currentFilm = null;
-    selectedRating = 0;
-}
-
-async function logFilm() {
-    if (!currentUser) {
-        showToast('Please log in first', 'error');
-        return;
+    switch (route) {
+        case 'home':
+            showHomePage();
+            break;
+        case 'films':
+            showFilmsPage();
+            break;
+        case 'diary':
+            showDiaryPage();
+            break;
+        case 'lists':
+            showWatchlistPage();
+            break;
+        case 'profile':
+            showProfilePage(params.userId || currentUser.userId);
+            break;
+        case 'film-detail':
+            showFilmDetailPage(params.filmId);
+            break;
     }
-    
-    if (selectedRating === 0) {
-        showToast('Please select a rating', 'error');
-        return;
-    }
-    
-    const review = document.getElementById('reviewText').value;
-    
+}
+
+// MODULE A & B: HOME PAGE (Hero + Popular + Recent Activity)
+async function showHomePage() {
     try {
-        const response = await fetch(`${API_BASE}/log_entry`, {
+        const response = await fetch(`${API_BASE}/home_data`);
+        const data = await response.json();
+
+        if (!response.ok || !data.hero_movie) {
+            document.getElementById('app').innerHTML = `<div class="empty-state"><h3>No data available</h3></div>`;
+            return;
+        }
+
+        const hero = data.hero_movie;
+        const backdropUrl = hero.backdrop_path || hero.poster_path || 'https://via.placeholder.com/1280x720/2C3440/FFFFFF?text=No+Image';
+        const posterUrl = hero.poster_path || 'https://via.placeholder.com/300x450/2C3440/FFFFFF?text=No+Poster';
+
+        document.getElementById('app').innerHTML = `
+            <div class="hero-container">
+                <div class="hero-backdrop" style="background-image: url('${backdropUrl}')"></div>
+                <div class="hero-content">
+                    <img src="${posterUrl}" alt="${hero.title}" class="hero-poster" onerror="this.src='https://via.placeholder.com/200x300/2C3440/FFFFFF?text=No+Image'">
+                    <h1 class="hero-title">${hero.title}</h1>
+                    <div class="hero-meta">${hero.year} • ${hero.director} • ⭐ ${hero.vote_average.toFixed(1)}</div>
+                    ${hero.tagline ? `<p class="hero-tagline">"${hero.tagline}"</p>` : ''}
+                    <div class="hero-actions">
+                        <button class="btn-hero btn-log" onclick="openLogModal(${hero.film_id})">LOG THIS FILM</button>
+                        <button class="btn-hero btn-details" onclick="navigateTo('film-detail', {filmId: ${hero.film_id}})">VIEW DETAILS</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-section">
+                <div class="section-header">
+                    <h2>Popular This Week</h2>
+                    <a href="#" onclick="navigateTo('films'); return false;">View All →</a>
+                </div>
+                <div class="popular-row">
+                    ${data.popular.map(film => `
+                        <div class="popular-card" onclick="navigateTo('film-detail', {filmId: ${film.film_id}})">
+                            <img src="${film.poster_path || 'https://via.placeholder.com/150x225/2C3440/FFFFFF?text=No+Poster'}" 
+                                 alt="${film.title}" onerror="this.src='https://via.placeholder.com/150x225/2C3440/FFFFFF?text=No+Image'">
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="home-section">
+                <div class="section-header">
+                    <h2>Recent Activity</h2>
+                </div>
+                <div class="activity-feed">
+                    ${JSON.parse(data.recent_logs).logs.map(log => `
+                        <div class="activity-item">
+                            <div class="activity-avatar">👤</div>
+                            <div class="activity-text">
+                                <strong>${log.username}</strong> watched <em>${log.film_title}</em>
+                                <span class="activity-rating">${'⭐'.repeat(Math.floor(log.rating))}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Home page error:', error);
+        document.getElementById('app').innerHTML = `<div class="empty-state"><h3>Error loading home page</h3></div>`;
+    }
+}
+
+// Films Browser
+function showFilmsPage() {
+    document.getElementById('app').innerHTML = `
+        <div class="films-header">
+            <h1>Browse Films</h1>
+            <div class="films-filters">
+                <button class="filter-btn active" onclick="filterFilms('all')">All Films</button>
+                <button class="filter-btn" onclick="filterFilms('top')">Top Rated</button>
+                <button class="filter-btn" onclick="filterFilms('recent')">Recently Added</button>
+            </div>
+        </div>
+        <div class="films-grid" id="filmsGrid">
+            ${allFilms.slice(0, 50).map(film => createFilmCard(film)).join('')}
+        </div>
+    `;
+}
+
+function filterFilms(type) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    let filtered = [...allFilms];
+    
+    if (type === 'top') {
+        filtered = filtered.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0)).slice(0, 100);
+    } else if (type === 'recent') {
+        filtered = filtered.slice(-100).reverse();
+    }
+
+    document.getElementById('filmsGrid').innerHTML = filtered.slice(0, 50).map(film => createFilmCard(film)).join('');
+}
+
+function createFilmCard(film) {
+    const posterUrl = film.poster_path || 'https://via.placeholder.com/300x450/2C3440/FFFFFF?text=No+Poster';
+
+    return `
+        <div class="film-card" onclick="navigateTo('film-detail', {filmId: ${film.film_id}})">
+            <img src="${posterUrl}" alt="${film.title}" class="film-poster" onerror="this.src='https://via.placeholder.com/300x450/2C3440/FFFFFF?text=No+Image'">
+            <div class="film-overlay">
+                <div class="film-overlay-title">${film.title}</div>
+                <div class="film-overlay-year">${film.year}</div>
+                <div class="film-overlay-icons">
+                    <button class="icon-btn" title="Watch" onclick="event.stopPropagation(); openLogModal(${film.film_id})">👁</button>
+                    <button class="icon-btn" title="Like" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 1)">❤</button>
+                    <button class="icon-btn" title="Watchlist" onclick="event.stopPropagation(); toggleInteraction(${film.film_id}, 2)">🕐</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// MODULE C: FILM DETAIL PAGE
+async function showFilmDetailPage(filmId) {
+    try {
+        const response = await fetch(`${API_BASE}/film/${filmId}`);
+        const data = await response.json();
+
+        if (!response.ok || !data.film) {
+            document.getElementById('app').innerHTML = `<div class="empty-state"><h3>Film not found</h3></div>`;
+            return;
+        }
+
+        const film = data.film;
+        const backdropUrl = film.backdrop_path || film.poster_path || 'https://via.placeholder.com/1280x720/2C3440/FFFFFF?text=No+Backdrop';
+        const posterUrl = film.poster_path || 'https://via.placeholder.com/230x345/2C3440/FFFFFF?text=No+Poster';
+
+        document.getElementById('app').innerHTML = `
+            <div class="detail-backdrop" style="background-image: url('${backdropUrl}')"></div>
+            <div class="detail-content">
+                <div class="detail-hero">
+                    <img src="${posterUrl}" alt="${film.title}" class="detail-poster" onerror="this.src='https://via.placeholder.com/230x345/2C3440/FFFFFF?text=No+Image'">
+                    <div class="detail-info">
+                        <h1 class="detail-title">${film.title}</h1>
+                        <div class="detail-year">${film.year}</div>
+                        ${film.tagline ? `<p class="detail-tagline">"${film.tagline}"</p>` : ''}
+                        
+                        <div class="detail-stats">
+                            <div class="stat-item">
+                                <span>Rating:</span>
+                                <span class="stat-value">⭐ ${film.vote_average.toFixed(1)}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Runtime:</span>
+                                <span class="stat-value">${film.runtime} min</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-actions">
+                            <button class="action-btn ${film.watched ? 'active' : ''}" onclick="openLogModal(${film.film_id})">
+                                <span>👁</span> ${film.watched ? 'WATCHED' : 'MARK AS WATCHED'}
+                            </button>
+                            <button class="action-btn ${film.liked ? 'active' : ''}" onclick="toggleInteraction(${film.film_id}, 1)">
+                                <span>❤</span> ${film.liked ? 'LIKED' : 'LIKE'}
+                            </button>
+                            <button class="action-btn ${film.watchlisted ? 'active' : ''}" onclick="toggleInteraction(${film.film_id}, 2)">
+                                <span>🕐</span> ${film.watchlisted ? 'IN WATCHLIST' : 'WATCHLIST'}
+                            </button>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>Director</h3>
+                            <p>${film.director}</p>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>Cast</h3>
+                            <p>${film.cast_summary || 'No cast information available'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Film detail error:', error);
+        document.getElementById('app').innerHTML = `<div class="empty-state"><h3>Error loading film</h3></div>`;
+    }
+}
+
+// MODULE D: LOGGING MODAL
+function openLogModal(filmId) {
+    const film = allFilms.find(f => f.film_id === filmId);
+    const filmTitle = film ? film.title : 'Film';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Log "${filmTitle}"</h2>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>I watched this on:</label>
+                    <input type="date" id="logDate" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="form-group">
+                    <label>Rating:</label>
+                    <div class="star-rating">
+                        ${[1, 2, 3, 4, 5].map(n => `<span class="star" data-rating="${n}" onclick="selectRating(${n})">☆</span>`).join('')}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Review:</label>
+                    <textarea id="logReview" placeholder="Add a review..." rows="4"></textarea>
+                </div>
+                <button class="btn-primary" onclick="submitLog(${filmId})">LOG FILM</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+let selectedRating = 0;
+
+function selectRating(rating) {
+    selectedRating = rating;
+    document.querySelectorAll('.star').forEach((star, index) => {
+        star.textContent = index < rating ? '★' : '☆';
+    });
+}
+
+async function submitLog(filmId) {
+    if (selectedRating === 0) {
+        alert('Please select a rating');
+        return;
+    }
+
+    const review = document.getElementById('logReview').value;
+
+    try {
+        const response = await fetch(`${API_BASE}/logs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                film_id: currentFilm.film_id,
-                rating: selectedRating,
-                review: review
+                film_id: filmId,
+                rating: parseFloat(selectedRating),
+                review_text: review
             })
         });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            showToast('Film logged successfully!');
-            closeModal();
+
+        if (response.ok) {
+            document.querySelector('.modal-overlay').remove();
+            alert('✓ Film logged successfully!');
+            if (currentRoute === 'film-detail') {
+                navigateTo('film-detail', { filmId });
+            }
         } else {
-            showToast(data.message || 'Failed to log film', 'error');
+            const data = await response.json();
+            alert('Failed: ' + (data.message || 'Unknown error'));
         }
     } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
+        alert('Error: ' + error.message);
     }
 }
 
-// Diary Management
-async function loadDiary() {
-    if (!currentUser) return;
-    
+// MODULE E: USER PROFILE & DIARY
+async function showProfilePage(userId) {
     try {
-        const response = await fetch(`${API_BASE}/logs/user/${currentUser.user_id}`);
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            displayDiary(data.logs);
+        const [profileRes, diaryRes, favoritesRes] = await Promise.all([
+            fetch(`${API_BASE}/user/${userId}/profile`),
+            fetch(`${API_BASE}/user/${userId}/logs`),
+            fetch(`${API_BASE}/user/${userId}/favorites`)
+        ]);
+
+        const profileData = await profileRes.json();
+        const diaryData = await diaryRes.json();
+        const favoritesData = await favoritesRes.json();
+
+        if (!profileRes.ok) {
+            document.getElementById('app').innerHTML = `<div class="empty-state"><h3>User not found</h3></div>`;
+            return;
         }
+
+        const profile = profileData.profile;
+        const logs = diaryData.logs || [];
+        const favorites = favoritesData.films || [];
+
+        document.getElementById('app').innerHTML = `
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">👤</div>
+                    <div class="profile-info">
+                        <h1>${profile.username}</h1>
+                        <p>${profile.bio}</p>
+                    </div>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">${profile.total_films}</div>
+                        <div class="profile-stat-label">FILMS</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">${profile.this_year}</div>
+                        <div class="profile-stat-label">THIS YEAR</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">${profile.watchlist_count}</div>
+                        <div class="profile-stat-label">WATCHLIST</div>
+                    </div>
+                </div>
+
+                ${favorites.length > 0 ? `
+                    <div class="profile-section">
+                        <h2>Favorite Films</h2>
+                        <div class="favorites-grid">
+                            ${favorites.map(film => `
+                                <div class="favorite-card" onclick="navigateTo('film-detail', {filmId: ${film.film_id}})">
+                                    <img src="${film.poster_path || 'https://via.placeholder.com/150x225'}" alt="${film.title}" 
+                                         onerror="this.src='https://via.placeholder.com/150x225/2C3440/FFFFFF?text=No+Image'">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="profile-section">
+                    <h2>Diary</h2>
+                    ${logs.length > 0 ? `
+                        <table class="diary-table">
+                            <thead>
+                                <tr>
+                                    <th>DATE</th>
+                                    <th>FILM</th>
+                                    <th>RATING</th>
+                                    <th>REVIEW</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${logs.map(log => {
+                                    const film = allFilms.find(f => f.film_id === log.film_id);
+                                    const filmTitle = film ? film.title : 'Unknown';
+                                    const date = new Date(log.log_date * 1000).toLocaleDateString();
+                                    return `
+                                        <tr>
+                                            <td>${date}</td>
+                                            <td class="diary-film-title">${filmTitle}</td>
+                                            <td class="diary-rating">${'⭐'.repeat(Math.floor(log.rating))}</td>
+                                            <td>${log.review_text || '-'}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<div class="empty-state"><p>No diary entries yet</p></div>'}
+                </div>
+            </div>
+        `;
     } catch (error) {
-        showToast('Failed to load diary', 'error');
-        console.error(error);
+        console.error('Profile error:', error);
+        document.getElementById('app').innerHTML = `<div class="empty-state"><h3>Error loading profile</h3></div>`;
     }
 }
 
-async function displayDiary(logs) {
-    const list = document.getElementById('diaryList');
-    list.innerHTML = '';
+function showDiaryPage() {
+    showProfilePage(currentUser.userId);
+}
+
+// MODULE F: WATCHLIST
+async function showWatchlistPage() {
+    try {
+        const response = await fetch(`${API_BASE}/user/${currentUser.userId}/watchlist`);
+        const data = await response.json();
+
+        const films = data.films || [];
+
+        document.getElementById('app').innerHTML = `
+            <div class="watchlist-container">
+                <div class="watchlist-header">
+                    <h1>My Watchlist</h1>
+                    <p>${films.length} films</p>
+                </div>
+                ${films.length > 0 ? `
+                    <div class="films-grid">
+                        ${films.map(film => createFilmCard(film)).join('')}
+                    </div>
+                ` : '<div class="empty-state"><h3>Your watchlist is empty</h3><p>Start adding films you want to watch!</p></div>'}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Watchlist error:', error);
+        document.getElementById('app').innerHTML = `<div class="empty-state"><h3>Error loading watchlist</h3></div>`;
+    }
+}
+
+// Interactions
+async function toggleInteraction(filmId, type) {
+    try {
+        const response = await fetch(`${API_BASE}/interaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ film_id: filmId, type: type })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const action = data.action === 'added' ? 'Added to' : 'Removed from';
+            const list = type === 1 ? 'favorites' : 'watchlist';
+            alert(`${action} ${list}!`);
+
+            if (currentRoute === 'film-detail') {
+                navigateTo('film-detail', { filmId });
+            }
+        }
+    } catch (error) {
+        console.error('Interaction error:', error);
+    }
+}
+
+// Search
+function openSearch() {
+    document.getElementById('searchOverlay').classList.add('active');
+    document.getElementById('searchInput').focus();
+}
+
+function closeSearch() {
+    document.getElementById('searchOverlay').classList.remove('active');
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').innerHTML = '';
+}
+
+async function handleSearch(e) {
+    const query = e.target.value.trim();
     
-    if (logs.length === 0) {
-        list.innerHTML = '<p style="color: #99AABB; text-align: center; padding: 2rem;">No diary entries yet. Start logging films!</p>';
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
         return;
     }
-    
-    for (const log of logs) {
-        // Fetch film details
-        const filmResponse = await fetch(`${API_BASE}/films/${log.film_id}`);
-        const filmData = await filmResponse.json();
-        
-        if (filmData.status === 'success') {
-            const film = filmData.film;
-            const entry = document.createElement('div');
-            entry.className = 'diary-entry';
-            
-            const posterUrl = `https://image.tmdb.org/t/p/w200${getPosterPath(film.tmdb_id)}`;
-            const stars = '★'.repeat(Math.floor(log.rating)) + '☆'.repeat(5 - Math.floor(log.rating));
-            
-            entry.innerHTML = `
-                <img class="diary-poster" src="${posterUrl}" 
-                     alt="${film.title}"
-                     onerror="this.src='https://via.placeholder.com/100x150?text=${encodeURIComponent(film.title)}'" />
-                <div class="diary-info">
-                    <div class="diary-title">${film.title} (${film.release_year})</div>
-                    <div class="diary-rating">${stars} ${log.rating.toFixed(1)}/5</div>
-                    <div class="diary-review">${log.review || 'No review'}</div>
-                    <div style="color: #99AABB; font-size: 0.85rem; margin-top: 0.5rem;">
-                        Watched: ${new Date(log.watch_date * 1000).toLocaleDateString()}
+
+    try {
+        const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        const results = data.films || [];
+
+        if (results.length === 0) {
+            document.getElementById('searchResults').innerHTML = `
+                <div class="empty-state"><p>No films found for "${query}"</p></div>
+            `;
+            return;
+        }
+
+        document.getElementById('searchResults').innerHTML = results.map(film => {
+            const posterUrl = film.poster_path || 'https://via.placeholder.com/50x75/2C3440/FFFFFF?text=?';
+
+            return `
+                <div class="search-result-item" onclick="closeSearch(); navigateTo('film-detail', {filmId: ${film.film_id}})">
+                    <img src="${posterUrl}" class="search-result-poster" onerror="this.src='https://via.placeholder.com/50x75/2C3440/FFFFFF?text=?'">
+                    <div class="search-result-info">
+                        <h4>${film.title}</h4>
+                        <p>${film.year} • ${film.director}</p>
                     </div>
                 </div>
             `;
-            
-            list.appendChild(entry);
-        }
-    }
-}
-
-// Admin Functions
-async function loadAdminData() {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    
-    loadAdminFilms();
-    loadAdminUsers();
-}
-
-async function loadAdminFilms() {
-    try {
-        const response = await fetch(`${API_BASE}/films`);
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            const container = document.getElementById('adminFilmList');
-            container.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Year</th>
-                            <th>Director</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.films.map(film => `
-                            <tr>
-                                <td>${film.film_id}</td>
-                                <td>${film.title}</td>
-                                <td>${film.release_year}</td>
-                                <td>${film.director}</td>
-                                <td><button onclick="deleteFilm(${film.film_id})">Delete</button></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+        }).join('');
     } catch (error) {
-        console.error(error);
+        console.error('Search error:', error);
     }
 }
-
-async function loadAdminUsers() {
-    try {
-        const response = await fetch(`${API_BASE}/admin/users`);
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            const container = document.getElementById('adminUserList');
-            container.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Admin</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.users.map(user => `
-                            <tr>
-                                <td>${user.user_id}</td>
-                                <td>${user.username}</td>
-                                <td>${user.email}</td>
-                                <td>${user.isAdmin ? 'Yes' : 'No'}</td>
-                                <td>
-                                    ${user.user_id !== 1 ? `<button onclick="deleteUser(${user.user_id})">Delete</button>` : '-'}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-async function addFilmAdmin() {
-    const title = document.getElementById('adminTitle').value;
-    const tmdbId = document.getElementById('adminTmdbId').value;
-    const year = document.getElementById('adminYear').value;
-    const runtime = document.getElementById('adminRuntime').value;
-    const cast = document.getElementById('adminCast').value;
-    const director = document.getElementById('adminDirector').value;
-    const g1 = document.getElementById('adminGenre1').value;
-    const g2 = document.getElementById('adminGenre2').value;
-    const g3 = document.getElementById('adminGenre3').value;
-    
-    if (!title || !year || !director) {
-        showToast('Please fill required fields', 'error');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/admin/add_film`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title, tmdb_id: parseInt(tmdbId) || 0,
-                release_year: parseInt(year), runtime: parseInt(runtime) || 0,
-                cast, director,
-                genre_id_1: parseInt(g1) || 0,
-                genre_id_2: parseInt(g2) || 0,
-                genre_id_3: parseInt(g3) || 0
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            showToast('Film added successfully!');
-            document.querySelectorAll('.admin-form input').forEach(input => input.value = '');
-            loadAdminFilms();
-            loadFilms();
-        } else {
-            showToast(data.message || 'Failed to add film', 'error');
-        }
-    } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
-    }
-}
-
-async function deleteFilm(filmId) {
-    if (!confirm('Are you sure you want to delete this film?')) return;
-    
-    try {
-        const response = await fetch(`${API_BASE}/admin/delete_film`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ film_id: filmId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            showToast('Film deleted');
-            loadAdminFilms();
-            loadFilms();
-        } else {
-            showToast(data.message || 'Failed to delete', 'error');
-        }
-    } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
-    }
-}
-
-async function deleteUser(userId) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    
-    try {
-        const response = await fetch(`${API_BASE}/admin/delete_user`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            showToast('User deleted');
-            loadAdminUsers();
-        } else {
-            showToast(data.message || 'Failed to delete', 'error');
-        }
-    } catch (error) {
-        showToast('Connection error', 'error');
-        console.error(error);
-    }
-}
-
-// Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Login/Register
-    document.getElementById('loginBtn').addEventListener('click', login);
-    document.getElementById('registerBtn').addEventListener('click', register);
-    document.getElementById('showRegister').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('registerView');
-    });
-    document.getElementById('showLogin').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('loginView');
-    });
-    
-    // Navigation
-    document.getElementById('navHome').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('homeView');
-        loadFilms();
-    });
-    document.getElementById('navDiary').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('diaryView');
-        loadDiary();
-    });
-    document.getElementById('navAdmin').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('adminView');
-        loadAdminData();
-    });
-    document.getElementById('navLogout').addEventListener('click', (e) => {
-        e.preventDefault();
-        logout();
-    });
-    
-    // Modal
-    document.querySelector('.close').addEventListener('click', closeModal);
-    document.getElementById('logFilmBtn').addEventListener('click', logFilm);
-    
-    // Star rating
-    document.querySelectorAll('.star-rating span').forEach(star => {
-        star.addEventListener('click', function() {
-            selectedRating = parseInt(this.dataset.rating);
-            document.querySelectorAll('.star-rating span').forEach(s => {
-                s.classList.remove('active');
-                if (parseInt(s.dataset.rating) <= selectedRating) {
-                    s.classList.add('active');
-                }
-            });
-        });
-    });
-    
-    // Admin
-    document.getElementById('adminAddFilmBtn').addEventListener('click', addFilmAdmin);
-    
-    // Check for saved session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        document.getElementById('navbar').style.display = 'block';
-        if (currentUser.role === 'admin') {
-            document.getElementById('navAdmin').style.display = 'block';
-        }
-        showView('homeView');
-        loadFilms();
-    }
-    
-    // Enter key for login
-    document.getElementById('loginPassword').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') login();
-    });
-});

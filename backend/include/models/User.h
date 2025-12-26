@@ -13,16 +13,17 @@ struct User {
     char bio[256];
     long join_date;
     bool isAdmin;
+    int avatar_id;             // New: Profile avatar selection (1-10)
 
-    User() : user_id(0), join_date(0), isAdmin(false) {
+    User() : user_id(0), join_date(0), isAdmin(false), avatar_id(1) {
         memset(username, 0, sizeof(username));
         memset(email, 0, sizeof(email));
         memset(password_hash, 0, sizeof(password_hash));
         memset(bio, 0, sizeof(bio));
     }
 
-    User(int id, const char* uname, const char* em, const char* pass, const char* b, bool admin = false) 
-        : user_id(id), join_date(time(nullptr)), isAdmin(admin) {
+    User(int id, const char* uname, const char* em, const char* pass, const char* b, bool admin = false, int avatar = 1) 
+        : user_id(id), join_date(time(nullptr)), isAdmin(admin), avatar_id(avatar) {
         strncpy(username, uname, sizeof(username) - 1);
         username[sizeof(username) - 1] = '\0';
         strncpy(email, em, sizeof(email) - 1);

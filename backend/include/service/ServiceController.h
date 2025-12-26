@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../ds/BTree.h"
+#include "../ds/Trie.h"
 #include "../models/User.h"
 #include "../models/Film.h"
 #include "../models/Log.h"
 #include "../models/Genre.h"
 #include "../models/List.h"
+#include "../models/Interaction.h"
 #include "../utils/JSONLoader.h"
 #include <string>
 #include <vector>
@@ -23,14 +25,16 @@ private:
     BTree<Log>* logTree;
     BTree<Genre>* genreTree;
     BTree<List>* listTree;
+    BTree<Interaction>* interactionTree;
+    Trie* searchTrie;
     
     int nextUserId;
     int nextFilmId;
     int nextLogId;
     int nextGenreId;
     int nextListId;
+    int nextInteractionId;
 
-    // Simple session management
     int currentUserId;
     bool isLoggedIn;
     bool currentUserIsAdmin;
@@ -57,15 +61,18 @@ public:
         logTree = new BTree<Log>("data/logs.bin");
         genreTree = new BTree<Genre>("data/genres.bin");
         listTree = new BTree<List>("data/lists.bin");
+        interactionTree = new BTree<Interaction>("data/interactions.bin");
+        searchTrie = new Trie();
         
         nextUserId = userTree->getMaxId() + 1;
         nextFilmId = filmTree->getMaxId() + 1;
         nextLogId = logTree->getMaxId() + 1;
         nextGenreId = genreTree->getMaxId() + 1;
         nextListId = listTree->getMaxId() + 1;
+        nextInteractionId = interactionTree->getMaxId() + 1;
 
-        // Load data from JSON if database is empty
         loadInitialData();
+        buildSearchIndex();
     }
 
     ~ServiceController() {
@@ -74,9 +81,11 @@ public:
         delete logTree;
         delete genreTree;
         delete listTree;
+        delete interactionTree;
+        delete searchTrie;
     }
 
-    // Authentication methods
+    // Authentication
     string loginUser(const string& username, const string& password) {
         vector<User> allUsers = userTree->getAllRecords();
         
@@ -86,22 +95,21 @@ public:
                 isLoggedIn = true;
                 currentUserIsAdmin = user.isAdmin;
                 
-                string role = user.isAdmin ? "admin" : "user";
+                ostringstream token;
+                token << user.user_id << ":" << user.username << ":" << (user.isAdmin ? "1" : "0");
+                
                 ostringstream json;
-                json << "{\"status\":\"success\",\"role\":\"" << role 
-                     << "\",\"user_id\":" << user.user_id 
-                     << ",\"username\":\"" << escapeJson(user.username) << "\"}";
+                json << "{\"status\":\"success\",\"token\":\"" << token.str() << "\"}";
                 return json.str();
             }
         }
         
-        return "{\"status\":\"error\",\"message\":\"Invalid credentials\"}";
+        return "{\"status\":\"error\",\"error\":\"Invalid credentials\"}";
     }
 
     string registerUser(const string& username, const string& email, const string& password, const string& bio) {
         vector<User> allUsers = userTree->getAllRecords();
         
-        // Check if username exists
         for (const auto& user : allUsers) {
             if (string(user.username) == username) {
                 return "{\"status\":\"error\",\"message\":\"Username already exists\"}";
@@ -116,22 +124,7 @@ public:
         return json.str();
     }
 
-    string logoutUser() {
-        currentUserId = 0;
-        isLoggedIn = false;
-        currentUserIsAdmin = false;
-        return "{\"status\":\"success\",\"message\":\"Logged out\"}";
-    }
-
-    bool isUserLoggedIn() const {
-        return isLoggedIn;
-    }
-
-    bool isCurrentUserAdmin() const {
-        return currentUserIsAdmin;
-    }
-
-    // Film methods
+    // Films
     string getAllFilms() {
         vector<Film> films = filmTree->getAllRecords();
         
@@ -143,10 +136,14 @@ public:
             json << "{\"film_id\":" << films[i].film_id
                  << ",\"tmdb_id\":" << films[i].tmdb_id
                  << ",\"title\":\"" << escapeJson(films[i].title) << "\""
-                 << ",\"release_year\":" << films[i].release_year
+                 << ",\"year\":" << films[i].release_year
                  << ",\"runtime\":" << films[i].runtime
-                 << ",\"cast\":\"" << escapeJson(films[i].cast_summary) << "\""
+                 << ",\"cast_summary\":\"" << escapeJson(films[i].cast_summary) << "\""
                  << ",\"director\":\"" << escapeJson(films[i].director) << "\""
+                 << ",\"poster_path\":\"" << escapeJson(films[i].poster_path) << "\""
+                 << ",\"backdrop_path\":\"" << escapeJson(films[i].backdrop_path) << "\""
+                 << ",\"tagline\":\"" << escapeJson(films[i].tagline) << "\""
+                 << ",\"vote_average\":" << fixed << setprecision(1) << films[i].vote_average
                  << ",\"genre_ids\":[" << films[i].genre_ids[0] << "," 
                  << films[i].genre_ids[1] << "," << films[i].genre_ids[2] << "]}";
         }
@@ -158,52 +155,81 @@ public:
     string getFilmById(int filmId) {
         Film film;
         if (filmTree->search(filmId, film)) {
+            // Check interactions
+            bool watched = false, liked = false, watchlisted = false;
+            
+            if (isLoggedIn) {
+                vector<Log> logs = logTree->getAllRecords();
+                for (const auto& log : logs) {
+                    if (log.user_id == currentUserId && log.film_id == filmId) {
+                        watched = true;
+                        break;
+                    }
+                }
+                
+                vector<Interaction> interactions = interactionTree->getAllRecords();
+                for (const auto& inter : interactions) {
+                    if (inter.user_id == currentUserId && inter.film_id == filmId) {
+                        if (inter.type == 1) liked = true;
+                        if (inter.type == 2) watchlisted = true;
+                    }
+                }
+            }
+            
             ostringstream json;
             json << "{\"status\":\"success\",\"film\":{"
                  << "\"film_id\":" << film.film_id
                  << ",\"tmdb_id\":" << film.tmdb_id
                  << ",\"title\":\"" << escapeJson(film.title) << "\""
-                 << ",\"release_year\":" << film.release_year
+                 << ",\"year\":" << film.release_year
                  << ",\"runtime\":" << film.runtime
-                 << ",\"cast\":\"" << escapeJson(film.cast_summary) << "\""
+                 << ",\"cast_summary\":\"" << escapeJson(film.cast_summary) << "\""
                  << ",\"director\":\"" << escapeJson(film.director) << "\""
+                 << ",\"poster_path\":\"" << escapeJson(film.poster_path) << "\""
+                 << ",\"backdrop_path\":\"" << escapeJson(film.backdrop_path) << "\""
+                 << ",\"tagline\":\"" << escapeJson(film.tagline) << "\""
+                 << ",\"vote_average\":" << fixed << setprecision(1) << film.vote_average
                  << ",\"genre_ids\":[" << film.genre_ids[0] << "," 
-                 << film.genre_ids[1] << "," << film.genre_ids[2] << "]}}";
+                 << film.genre_ids[1] << "," << film.genre_ids[2] << "]"
+                 << ",\"watched\":" << (watched ? "true" : "false")
+                 << ",\"liked\":" << (liked ? "true" : "false")
+                 << ",\"watchlisted\":" << (watchlisted ? "true" : "false")
+                 << "}}";
             return json.str();
         }
         return "{\"status\":\"error\",\"message\":\"Film not found\"}";
     }
 
-    string addFilm(const string& title, int tmdbId, int year, int runtime, 
-                   const string& cast, const string& director, int g1, int g2, int g3) {
-        if (!currentUserIsAdmin) {
-            return "{\"status\":\"error\",\"message\":\"Unauthorized - Admin only\"}";
+    string searchFilms(const string& query) {
+        if (query.length() < 2) {
+            return "{\"status\":\"error\",\"message\":\"Query too short\"}";
         }
-
-        Film newFilm(nextFilmId++, tmdbId, title.c_str(), year, runtime, cast.c_str(), director.c_str());
-        newFilm.genre_ids[0] = g1;
-        newFilm.genre_ids[1] = g2;
-        newFilm.genre_ids[2] = g3;
         
-        filmTree->insert(newFilm);
+        vector<int> filmIds = searchTrie->search(query);
         
         ostringstream json;
-        json << "{\"status\":\"success\",\"film_id\":" << newFilm.film_id << "}";
+        json << "{\"status\":\"success\",\"films\":[";
+        
+        bool first = true;
+        for (int filmId : filmIds) {
+            Film film;
+            if (filmTree->search(filmId, film)) {
+                if (!first) json << ",";
+                first = false;
+                
+                json << "{\"film_id\":" << film.film_id
+                     << ",\"title\":\"" << escapeJson(film.title) << "\""
+                     << ",\"year\":" << film.release_year
+                     << ",\"director\":\"" << escapeJson(film.director) << "\""
+                     << ",\"poster_path\":\"" << escapeJson(film.poster_path) << "\"}";
+            }
+        }
+        
+        json << "]}";
         return json.str();
     }
 
-    string deleteFilm(int filmId) {
-        if (!currentUserIsAdmin) {
-            return "{\"status\":\"error\",\"message\":\"Unauthorized - Admin only\"}";
-        }
-
-        if (filmTree->deleteRecord(filmId)) {
-            return "{\"status\":\"success\",\"message\":\"Film deleted\"}";
-        }
-        return "{\"status\":\"error\",\"message\":\"Film not found\"}";
-    }
-
-    // Log methods
+    // Logs
     string addLog(int filmId, float rating, const string& review) {
         if (!isLoggedIn) {
             return "{\"status\":\"error\",\"message\":\"Must be logged in\"}";
@@ -233,8 +259,8 @@ public:
                      << ",\"user_id\":" << log.user_id
                      << ",\"film_id\":" << log.film_id
                      << ",\"rating\":" << fixed << setprecision(1) << log.rating
-                     << ",\"review\":\"" << escapeJson(log.review_preview) << "\""
-                     << ",\"watch_date\":" << log.watch_date << "}";
+                     << ",\"review_text\":\"" << escapeJson(log.review_preview) << "\""
+                     << ",\"log_date\":" << log.watch_date << "}";
             }
         }
         
@@ -242,61 +268,208 @@ public:
         return json.str();
     }
 
-    string deleteLog(int logId) {
-        Log log;
-        if (logTree->search(logId, log)) {
-            if (log.user_id != currentUserId && !currentUserIsAdmin) {
-                return "{\"status\":\"error\",\"message\":\"Unauthorized\"}";
-            }
-            
-            if (logTree->deleteRecord(logId)) {
-                return "{\"status\":\"success\",\"message\":\"Log deleted\"}";
-            }
-        }
-        return "{\"status\":\"error\",\"message\":\"Log not found\"}";
-    }
-
-    // User management (Admin)
-    string getAllUsers() {
-        if (!currentUserIsAdmin) {
-            return "{\"status\":\"error\",\"message\":\"Unauthorized - Admin only\"}";
-        }
-
-        vector<User> users = userTree->getAllRecords();
+    string getRecentLogs(int limit = 10) {
+        vector<Log> allLogs = logTree->getAllRecords();
+        
+        // Sort by watch_date descending
+        sort(allLogs.begin(), allLogs.end(), [](const Log& a, const Log& b) {
+            return a.watch_date > b.watch_date;
+        });
         
         ostringstream json;
-        json << "{\"status\":\"success\",\"users\":[";
+        json << "{\"status\":\"success\",\"logs\":[";
         
-        for (size_t i = 0; i < users.size(); i++) {
-            if (i > 0) json << ",";
-            json << "{\"user_id\":" << users[i].user_id
-                 << ",\"username\":\"" << escapeJson(users[i].username) << "\""
-                 << ",\"email\":\"" << escapeJson(users[i].email) << "\""
-                 << ",\"bio\":\"" << escapeJson(users[i].bio) << "\""
-                 << ",\"join_date\":" << users[i].join_date
-                 << ",\"isAdmin\":" << (users[i].isAdmin ? "true" : "false") << "}";
+        int count = 0;
+        for (const auto& log : allLogs) {
+            if (count >= limit) break;
+            
+            User user;
+            Film film;
+            if (userTree->search(log.user_id, user) && filmTree->search(log.film_id, film)) {
+                if (count > 0) json << ",";
+                json << "{\"username\":\"" << escapeJson(user.username) << "\""
+                     << ",\"film_title\":\"" << escapeJson(film.title) << "\""
+                     << ",\"rating\":" << fixed << setprecision(1) << log.rating
+                     << ",\"date\":" << log.watch_date << "}";
+                count++;
+            }
         }
         
         json << "]}";
         return json.str();
     }
 
-    string deleteUser(int userId) {
-        if (!currentUserIsAdmin) {
-            return "{\"status\":\"error\",\"message\":\"Unauthorized - Admin only\"}";
+    // Interactions
+    string toggleInteraction(int filmId, int type) {
+        if (!isLoggedIn) {
+            return "{\"status\":\"error\",\"message\":\"Must be logged in\"}";
         }
 
-        if (userId == 1) {
-            return "{\"status\":\"error\",\"message\":\"Cannot delete admin user\"}";
+        vector<Interaction> interactions = interactionTree->getAllRecords();
+        
+        // Check if exists
+        for (const auto& inter : interactions) {
+            if (inter.user_id == currentUserId && inter.film_id == filmId && inter.type == type) {
+                // Remove
+                interactionTree->deleteRecord(inter.interaction_id);
+                return "{\"status\":\"success\",\"action\":\"removed\"}";
+            }
         }
-
-        if (userTree->deleteRecord(userId)) {
-            return "{\"status\":\"success\",\"message\":\"User deleted\"}";
-        }
-        return "{\"status\":\"error\",\"message\":\"User not found\"}";
+        
+        // Add
+        Interaction newInteraction(nextInteractionId++, currentUserId, filmId, type);
+        interactionTree->insert(newInteraction);
+        
+        return "{\"status\":\"success\",\"action\":\"added\"}";
     }
 
-    // Genre methods
+    string getUserWatchlist(int userId) {
+        vector<Interaction> interactions = interactionTree->getAllRecords();
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"films\":[";
+        
+        bool first = true;
+        for (const auto& inter : interactions) {
+            if (inter.user_id == userId && inter.type == 2) {
+                Film film;
+                if (filmTree->search(inter.film_id, film)) {
+                    if (!first) json << ",";
+                    first = false;
+                    
+                    json << "{\"film_id\":" << film.film_id
+                         << ",\"title\":\"" << escapeJson(film.title) << "\""
+                         << ",\"year\":" << film.release_year
+                         << ",\"poster_path\":\"" << escapeJson(film.poster_path) << "\""
+                         << ",\"director\":\"" << escapeJson(film.director) << "\"}";
+                }
+            }
+        }
+        
+        json << "]}";
+        return json.str();
+    }
+
+    string getUserFavorites(int userId) {
+        vector<Interaction> interactions = interactionTree->getAllRecords();
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"films\":[";
+        
+        bool first = true;
+        int count = 0;
+        for (const auto& inter : interactions) {
+            if (inter.user_id == userId && inter.type == 1 && count < 4) {
+                Film film;
+                if (filmTree->search(inter.film_id, film)) {
+                    if (!first) json << ",";
+                    first = false;
+                    
+                    json << "{\"film_id\":" << film.film_id
+                         << ",\"title\":\"" << escapeJson(film.title) << "\""
+                         << ",\"poster_path\":\"" << escapeJson(film.poster_path) << "\"}";
+                    count++;
+                }
+            }
+        }
+        
+        json << "]}";
+        return json.str();
+    }
+
+    // User Profile
+    string getUserProfile(int userId) {
+        User user;
+        if (!userTree->search(userId, user)) {
+            return "{\"status\":\"error\",\"message\":\"User not found\"}";
+        }
+        
+        // Count stats
+        vector<Log> logs = logTree->getAllRecords();
+        int totalFilms = 0;
+        int thisYear = 0;
+        time_t now = time(nullptr);
+        struct tm* tm_now = localtime(&now);
+        int currentYear = tm_now->tm_year + 1900;
+        
+        for (const auto& log : logs) {
+            if (log.user_id == userId) {
+                totalFilms++;
+                struct tm* tm_log = localtime(&log.watch_date);
+                if (tm_log->tm_year + 1900 == currentYear) {
+                    thisYear++;
+                }
+            }
+        }
+        
+        vector<Interaction> interactions = interactionTree->getAllRecords();
+        int watchlistCount = 0;
+        for (const auto& inter : interactions) {
+            if (inter.user_id == userId && inter.type == 2) {
+                watchlistCount++;
+            }
+        }
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"profile\":{"
+             << "\"user_id\":" << user.user_id
+             << ",\"username\":\"" << escapeJson(user.username) << "\""
+             << ",\"bio\":\"" << escapeJson(user.bio) << "\""
+             << ",\"avatar_id\":" << user.avatar_id
+             << ",\"total_films\":" << totalFilms
+             << ",\"this_year\":" << thisYear
+             << ",\"watchlist_count\":" << watchlistCount
+             << "}}";
+        
+        return json.str();
+    }
+
+    // Home data
+    string getHomeData() {
+        vector<Film> films = filmTree->getAllRecords();
+        
+        // Get hero film (first high-rated one)
+        Film heroFilm;
+        bool foundHero = false;
+        for (const auto& film : films) {
+            if (film.vote_average >= 8.0 && strlen(film.backdrop_path) > 0) {
+                heroFilm = film;
+                foundHero = true;
+                break;
+            }
+        }
+        
+        if (!foundHero && !films.empty()) {
+            heroFilm = films[0];
+        }
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"hero_movie\":{"
+             << "\"film_id\":" << heroFilm.film_id
+             << ",\"title\":\"" << escapeJson(heroFilm.title) << "\""
+             << ",\"year\":" << heroFilm.release_year
+             << ",\"director\":\"" << escapeJson(heroFilm.director) << "\""
+             << ",\"poster_path\":\"" << escapeJson(heroFilm.poster_path) << "\""
+             << ",\"backdrop_path\":\"" << escapeJson(heroFilm.backdrop_path) << "\""
+             << ",\"tagline\":\"" << escapeJson(heroFilm.tagline) << "\""
+             << ",\"vote_average\":" << fixed << setprecision(1) << heroFilm.vote_average
+             << "},\"popular\":[";
+        
+        // Get 8 popular films
+        for (int i = 0; i < min(8, (int)films.size()); i++) {
+            if (i > 0) json << ",";
+            json << "{\"film_id\":" << films[i].film_id
+                 << ",\"title\":\"" << escapeJson(films[i].title) << "\""
+                 << ",\"poster_path\":\"" << escapeJson(films[i].poster_path) << "\"}";
+        }
+        
+        json << "],\"recent_logs\":";
+        json << getRecentLogs(5);
+        json << "}";
+        
+        return json.str();
+    }
+
     string getAllGenres() {
         vector<Genre> genres = genreTree->getAllRecords();
         
@@ -313,15 +486,17 @@ public:
         return json.str();
     }
 
+    bool isCurrentUserAdmin() {
+        return currentUserIsAdmin;
+    }
+
 private:
     void loadInitialData() {
-        // Check if database is empty
         vector<User> existingUsers = userTree->getAllRecords();
         
         if (existingUsers.empty()) {
             cout << "Database is empty. Loading initial data from JSON files..." << endl;
             
-            // Load users
             ifstream userCheck("data/users.json");
             if (userCheck.good()) {
                 userCheck.close();
@@ -331,15 +506,8 @@ private:
                     userTree->insert(user);
                 }
                 nextUserId = userTree->getMaxId() + 1;
-            } else {
-                // Create default admin if no JSON file
-                cout << "No users.json found. Creating default admin..." << endl;
-                User adminUser(1, "admin", "admin@cinelog.com", "admin123", "System Administrator", true);
-                userTree->insert(adminUser);
-                nextUserId = 2;
             }
             
-            // Load films
             ifstream filmCheck("data/films.json");
             if (filmCheck.good()) {
                 filmCheck.close();
@@ -351,7 +519,6 @@ private:
                 nextFilmId = filmTree->getMaxId() + 1;
             }
             
-            // Load genres
             ifstream genreCheck("data/genres.json");
             if (genreCheck.good()) {
                 genreCheck.close();
@@ -363,7 +530,6 @@ private:
                 nextGenreId = genreTree->getMaxId() + 1;
             }
             
-            // Load logs
             ifstream logCheck("data/logs.json");
             if (logCheck.good()) {
                 logCheck.close();
@@ -379,5 +545,16 @@ private:
         } else {
             cout << "Database already contains data. Skipping initial load." << endl;
         }
+    }
+    
+    void buildSearchIndex() {
+        vector<Film> films = filmTree->getAllRecords();
+        cout << "Building search index with " << films.size() << " films..." << endl;
+        
+        for (const auto& film : films) {
+            searchTrie->insert(film.title, film.film_id);
+        }
+        
+        cout << "Search index built successfully!" << endl;
     }
 };
