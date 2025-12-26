@@ -1,0 +1,702 @@
+[
+  {
+    "film_id": 1,
+    "tmdb_id": 83533,
+    "title": "Avatar: Fire and Ash",
+    "release_year": 2025,
+    "runtime": 198,
+    "cast": "Sam Worthington, Zoe Saldaña, Sigourney Weaver, Stephen Lang, Oona Chaplin",
+    "director": "James Cameron",
+    "genre_ids": [
+      878,
+      12,
+      14
+    ]
+  },
+  {
+    "film_id": 2,
+    "tmdb_id": 982843,
+    "title": "The Great Flood",
+    "release_year": 2025,
+    "runtime": 109,
+    "cast": "Kim Da-mi, Park Hae-soo, Kwon Eun-seong, Jeon Hye-jin, Park Byung-eun",
+    "director": "Kim Byung-woo",
+    "genre_ids": [
+      878,
+      12,
+      18
+    ]
+  },
+  {
+    "film_id": 3,
+    "tmdb_id": 1228246,
+    "title": "Five Nights at Freddy's 2",
+    "release_year": 2025,
+    "runtime": 104,
+    "cast": "Josh Hutcherson, Piper Rubio, Elizabeth Lail, Matthew Lillard, Freddy Carter",
+    "director": "Emma Tammi",
+    "genre_ids": [
+      27,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 4,
+    "tmdb_id": 1084242,
+    "title": "Zootopia 2",
+    "release_year": 2025,
+    "runtime": 107,
+    "cast": "Ginnifer Goodwin, Jason Bateman, Ke Huy Quan, Fortune Feimster, Andy Samberg",
+    "director": "Jared Bush",
+    "genre_ids": [
+      16,
+      35,
+      12
+    ]
+  },
+  {
+    "film_id": 5,
+    "tmdb_id": 425274,
+    "title": "Now You See Me: Now You Don't",
+    "release_year": 2025,
+    "runtime": 112,
+    "cast": "Jesse Eisenberg, Dominic Sessa, Ariana Greenblatt, Justice Smith, Rosamund Pike",
+    "director": "Ruben Fleischer",
+    "genre_ids": [
+      53,
+      80,
+      9648
+    ]
+  },
+  {
+    "film_id": 6,
+    "tmdb_id": 1223601,
+    "title": "Sisu: Road to Revenge",
+    "release_year": 2025,
+    "runtime": 89,
+    "cast": "Jorma Tommila, Stephen Lang, Richard Brake, Tommi Korpela, Kaspar Velberg",
+    "director": "Jalmari Helander",
+    "genre_ids": [
+      28,
+      10752,
+      0
+    ]
+  },
+  {
+    "film_id": 7,
+    "tmdb_id": 1512623,
+    "title": "Risqué",
+    "release_year": 2025,
+    "runtime": 91,
+    "cast": "Leah Gibson, Eloise Lovell Anderson, Silvia Orduna, Rex Adams, Julia Strowski",
+    "director": "Tony Dean Smith",
+    "genre_ids": [
+      28,
+      80,
+      53
+    ]
+  },
+  {
+    "film_id": 8,
+    "tmdb_id": 1247002,
+    "title": "The Old Woman with the Knife",
+    "release_year": 2025,
+    "runtime": 123,
+    "cast": "Lee Hye-young, Kim Sung-cheol, Yeon Woo-jin, Kim Moo-yul, Shin Sia",
+    "director": "Min Kyu-dong",
+    "genre_ids": [
+      28,
+      9648,
+      18
+    ]
+  },
+  {
+    "film_id": 9,
+    "tmdb_id": 1013446,
+    "title": "Reflection in a Dead Diamond",
+    "release_year": 2025,
+    "runtime": 87,
+    "cast": "Fabio Testi, Yannick Renier, Koen De Bouw, Maria de Medeiros, Thi-Mai Nguyen",
+    "director": "Hélène Cattet",
+    "genre_ids": [
+      28,
+      53,
+      9648
+    ]
+  },
+  {
+    "film_id": 10,
+    "tmdb_id": 1439112,
+    "title": "Muzzle: City of Wolves",
+    "release_year": 2025,
+    "runtime": 93,
+    "cast": "Aaron Eckhart, Tanya van Graan, Karl Thaning, Nicole Fortuin, Adrian Collins",
+    "director": "John Stalberg Jr.",
+    "genre_ids": [
+      28,
+      53,
+      9648
+    ]
+  },
+  {
+    "film_id": 11,
+    "tmdb_id": 1336189,
+    "title": "Delivery Run",
+    "release_year": 2025,
+    "runtime": 84,
+    "cast": "Alexander Arnold, Liam James Collins, Joe Gallina, Nadine Higgin, Jussi Lampi",
+    "director": "Joey Palmroos",
+    "genre_ids": [
+      28,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 12,
+    "tmdb_id": 1195518,
+    "title": "The Unholy Trinity",
+    "release_year": 2025,
+    "runtime": 95,
+    "cast": "Pierce Brosnan, Samuel L. Jackson, Brandon Lessard, Veronica Ferres, Gianni Capaldi",
+    "director": "Richard Gray",
+    "genre_ids": [
+      37,
+      12,
+      80
+    ]
+  },
+  {
+    "film_id": 13,
+    "tmdb_id": 755898,
+    "title": "War of the Worlds",
+    "release_year": 2025,
+    "runtime": 91,
+    "cast": "Ice Cube, Eva Longoria, Clark Gregg, Iman Benson, Henry Hunter Hall",
+    "director": "Rich Lee",
+    "genre_ids": [
+      878,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 14,
+    "tmdb_id": 1196067,
+    "title": "Worldbreaker",
+    "release_year": 2025,
+    "runtime": 95,
+    "cast": "Milla Jovovich, Luke Evans, Meadow Williams, Mila Harris, Billie Boulet",
+    "director": "Brad Anderson",
+    "genre_ids": [
+      878,
+      28,
+      0
+    ]
+  },
+  {
+    "film_id": 15,
+    "tmdb_id": 1491902,
+    "title": "Bang",
+    "release_year": 2025,
+    "runtime": 0,
+    "cast": "Jack Kesy, Peter Weller, Tristin Mays, Kane Kosugi, Steve Bastoni",
+    "director": "Wych Kaosayananda",
+    "genre_ids": [
+      28,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 16,
+    "tmdb_id": 812583,
+    "title": "Wake Up Dead Man: A Knives Out Mystery",
+    "release_year": 2025,
+    "runtime": 145,
+    "cast": "Daniel Craig, Josh O'Connor, Glenn Close, Josh Brolin, Mila Kunis",
+    "director": "Rian Johnson",
+    "genre_ids": [
+      53,
+      9648,
+      35
+    ]
+  },
+  {
+    "film_id": 17,
+    "tmdb_id": 1589891,
+    "title": "A Time for Bravery",
+    "release_year": 2025,
+    "runtime": 107,
+    "cast": "Luis Gerardo Méndez, Memo Villegas, Christian Tappán, Verónica Bravo, Noé Hernández",
+    "director": "Ariel Winograd",
+    "genre_ids": [
+      35,
+      28,
+      0
+    ]
+  },
+  {
+    "film_id": 18,
+    "tmdb_id": 798645,
+    "title": "The Running Man",
+    "release_year": 2025,
+    "runtime": 133,
+    "cast": "Glen Powell, Josh Brolin, Colman Domingo, Lee Pace, Michael Cera",
+    "director": "Edgar Wright",
+    "genre_ids": [
+      28,
+      53,
+      878
+    ]
+  },
+  {
+    "film_id": 19,
+    "tmdb_id": 1419406,
+    "title": "The Shadow's Edge",
+    "release_year": 2025,
+    "runtime": 142,
+    "cast": "Jackie Chan, Zhang Zifeng, Tony Leung Ka-fai, Ci Sha, Jun",
+    "director": "Larry Yang",
+    "genre_ids": [
+      28,
+      80,
+      53
+    ]
+  },
+  {
+    "film_id": 20,
+    "tmdb_id": 76600,
+    "title": "Avatar: The Way of Water",
+    "release_year": 2022,
+    "runtime": 192,
+    "cast": "Sam Worthington, Zoe Saldaña, Sigourney Weaver, Stephen Lang, Kate Winslet",
+    "director": "James Cameron",
+    "genre_ids": [
+      28,
+      12,
+      878
+    ]
+  },
+  {
+    "film_id": 21,
+    "tmdb_id": 19995,
+    "title": "Avatar",
+    "release_year": 2009,
+    "runtime": 162,
+    "cast": "Sam Worthington, Zoe Saldaña, Sigourney Weaver, Stephen Lang, Michelle Rodriguez",
+    "director": "James Cameron",
+    "genre_ids": [
+      28,
+      12,
+      14
+    ]
+  },
+  {
+    "film_id": 22,
+    "tmdb_id": 1438030,
+    "title": "Slaughterhouse 2",
+    "release_year": 2024,
+    "runtime": 93,
+    "cast": "Rick Roessler, Sherry Leigh, Jim Lairmore, Mary Grondona, Madi Lewis",
+    "director": "Rick Roessler",
+    "genre_ids": [
+      27,
+      0,
+      0
+    ]
+  },
+  {
+    "film_id": 23,
+    "tmdb_id": 1259102,
+    "title": "Eternity",
+    "release_year": 2025,
+    "runtime": 114,
+    "cast": "Elizabeth Olsen, Miles Teller, Callum Turner, Da'Vine Joy Randolph, John Early",
+    "director": "David Freyne",
+    "genre_ids": [
+      10749,
+      35,
+      18
+    ]
+  },
+  {
+    "film_id": 24,
+    "tmdb_id": 1242898,
+    "title": "Predator: Badlands",
+    "release_year": 2025,
+    "runtime": 107,
+    "cast": "Elle Fanning, Dimitrius Schuster-Koloamatangi, Ravi Narayan, Michael Homick, Stefan Grube",
+    "director": "Dan Trachtenberg",
+    "genre_ids": [
+      28,
+      878,
+      12
+    ]
+  },
+  {
+    "film_id": 25,
+    "tmdb_id": 1387382,
+    "title": "Hunting Season",
+    "release_year": 2025,
+    "runtime": 93,
+    "cast": "Mel Gibson, Shelley Hennig, Jordi Mollà, Sofia Hublitz, A.J. Buckley",
+    "director": "Raja Collins",
+    "genre_ids": [
+      28,
+      18,
+      53
+    ]
+  },
+  {
+    "film_id": 26,
+    "tmdb_id": 1218925,
+    "title": "Chainsaw Man - The Movie: Reze Arc",
+    "release_year": 2025,
+    "runtime": 100,
+    "cast": "Kikunosuke Toya, Reina Ueda, Tomori Kusunoki, Shogo Sakata, Maaya Uchida",
+    "director": "Tatsuya Yoshihara",
+    "genre_ids": [
+      16,
+      28,
+      10749
+    ]
+  },
+  {
+    "film_id": 27,
+    "tmdb_id": 1311031,
+    "title": "Demon Slayer: Kimetsu no Yaiba Infinity Castle",
+    "release_year": 2025,
+    "runtime": 156,
+    "cast": "Natsuki Hanae, Takahiro Sakurai, Akira Ishida, Hiro Shimono, Yoshimasa Hosoya",
+    "director": "Haruo Sotozaki",
+    "genre_ids": [
+      16,
+      28,
+      14
+    ]
+  },
+  {
+    "film_id": 28,
+    "tmdb_id": 1247002,
+    "title": "The Old Woman with the Knife",
+    "release_year": 2025,
+    "runtime": 123,
+    "cast": "Lee Hye-young, Kim Sung-cheol, Yeon Woo-jin, Kim Moo-yul, Shin Sia",
+    "director": "Min Kyu-dong",
+    "genre_ids": [
+      28,
+      9648,
+      18
+    ]
+  },
+  {
+    "film_id": 29,
+    "tmdb_id": 1214931,
+    "title": "Nuremberg",
+    "release_year": 2025,
+    "runtime": 148,
+    "cast": "Russell Crowe, Rami Malek, Michael Shannon, Leo Woodall, John Slattery",
+    "director": "James Vanderbilt",
+    "genre_ids": [
+      36,
+      18,
+      0
+    ]
+  },
+  {
+    "film_id": 30,
+    "tmdb_id": 1468057,
+    "title": "GATAO: Big Brothers",
+    "release_year": 2025,
+    "runtime": 0,
+    "cast": "Jack Kao, Tsai Chen-Nan, Tai Bo, Jieh-Wen King, Lung Tien-Hsiang",
+    "director": "Jui-Chih Chiang",
+    "genre_ids": [
+      80,
+      28,
+      0
+    ]
+  },
+  {
+    "film_id": 31,
+    "tmdb_id": 1103437,
+    "title": "Please Don't Feed the Children",
+    "release_year": 2025,
+    "runtime": 94,
+    "cast": "Michelle Dockery, Zoe Colletti, Andrew Liner, Dean Scott Vazquez, Regan Aliyah",
+    "director": "Destry Allyn Spielberg",
+    "genre_ids": [
+      27,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 32,
+    "tmdb_id": 1180831,
+    "title": "Troll 2",
+    "release_year": 2025,
+    "runtime": 105,
+    "cast": "Ine Marie Wilmann, Kim S. Falck-Jørgensen, Mads Sjøgård Pettersen, Sara Khorami, Karoline Viktoria Sletteng Garvang",
+    "director": "Roar Uthaug",
+    "genre_ids": [
+      28,
+      14,
+      53
+    ]
+  },
+  {
+    "film_id": 33,
+    "tmdb_id": 1368166,
+    "title": "The Housemaid",
+    "release_year": 2025,
+    "runtime": 131,
+    "cast": "Sydney Sweeney, Amanda Seyfried, Brandon Sklenar, Elizabeth Perkins, Michele Morrone",
+    "director": "Paul Feig",
+    "genre_ids": [
+      9648,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 34,
+    "tmdb_id": 1162858,
+    "title": "The Other",
+    "release_year": 2025,
+    "runtime": 99,
+    "cast": "Olivia Macklin, Dylan McTee, Avangeline Friedlander, Shawnee Smith, Lily D. Moore",
+    "director": "Paul Etheredge",
+    "genre_ids": [
+      27,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 35,
+    "tmdb_id": 7451,
+    "title": "xXx",
+    "release_year": 2002,
+    "runtime": 124,
+    "cast": "Vin Diesel, Asia Argento, Marton Csokas, Samuel L. Jackson, Michael Roof",
+    "director": "Rob Cohen",
+    "genre_ids": [
+      28,
+      12,
+      53
+    ]
+  },
+  {
+    "film_id": 36,
+    "tmdb_id": 1054867,
+    "title": "One Battle After Another",
+    "release_year": 2025,
+    "runtime": 162,
+    "cast": "Leonardo DiCaprio, Sean Penn, Chase Infiniti, Benicio del Toro, Regina Hall",
+    "director": "Paul Thomas Anderson",
+    "genre_ids": [
+      53,
+      80,
+      28
+    ]
+  },
+  {
+    "film_id": 37,
+    "tmdb_id": 1083637,
+    "title": "Kantara - A Legend: Chapter 1",
+    "release_year": 2025,
+    "runtime": 165,
+    "cast": "Rishab Shetty, Rukmini Vasanth, Jayaram, Gulshan Devaiah, Ramitha Shailendra",
+    "director": "Rishab Shetty",
+    "genre_ids": [
+      28,
+      18,
+      14
+    ]
+  },
+  {
+    "film_id": 38,
+    "tmdb_id": 1062722,
+    "title": "Frankenstein",
+    "release_year": 2025,
+    "runtime": 150,
+    "cast": "Oscar Isaac, Jacob Elordi, Christoph Waltz, Mia Goth, Felix Kammerer",
+    "director": "Guillermo del Toro",
+    "genre_ids": [
+      18,
+      14,
+      27
+    ]
+  },
+  {
+    "film_id": 39,
+    "tmdb_id": 1149167,
+    "title": "High Rollers",
+    "release_year": 2025,
+    "runtime": 101,
+    "cast": "John Travolta, Gina Gershon, Lukas Haas, Quavo, Natali Yura",
+    "director": "Randall Emmett",
+    "genre_ids": [
+      28,
+      80,
+      53
+    ]
+  },
+  {
+    "film_id": 40,
+    "tmdb_id": 1291608,
+    "title": "Dhurandhar",
+    "release_year": 2025,
+    "runtime": 212,
+    "cast": "Ranveer Singh, Akshaye Khanna, R. Madhavan, Arjun Rampal, Sanjay Dutt",
+    "director": "Aditya Dhar",
+    "genre_ids": [
+      28,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 41,
+    "tmdb_id": 1033462,
+    "title": "Bureau 749",
+    "release_year": 2024,
+    "runtime": 123,
+    "cast": "Karry Wang, Miao Miao, Ryan Zheng, Ren Min, Xin Baiqing",
+    "director": "Lu Chuan",
+    "genre_ids": [
+      28,
+      12,
+      878
+    ]
+  },
+  {
+    "film_id": 42,
+    "tmdb_id": 1149167,
+    "title": "High Rollers",
+    "release_year": 2025,
+    "runtime": 101,
+    "cast": "John Travolta, Gina Gershon, Lukas Haas, Quavo, Natali Yura",
+    "director": "Randall Emmett",
+    "genre_ids": [
+      28,
+      80,
+      53
+    ]
+  },
+  {
+    "film_id": 43,
+    "tmdb_id": 1246049,
+    "title": "Dracula",
+    "release_year": 2025,
+    "runtime": 130,
+    "cast": "Caleb Landry Jones, Zoë Bleu Sidel, Christoph Waltz, Matilda De Angelis, Ewens Abid",
+    "director": "Luc Besson",
+    "genre_ids": [
+      27,
+      14,
+      10749
+    ]
+  },
+  {
+    "film_id": 44,
+    "tmdb_id": 1291608,
+    "title": "Dhurandhar",
+    "release_year": 2025,
+    "runtime": 212,
+    "cast": "Ranveer Singh, Akshaye Khanna, R. Madhavan, Arjun Rampal, Sanjay Dutt",
+    "director": "Aditya Dhar",
+    "genre_ids": [
+      28,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 45,
+    "tmdb_id": 980477,
+    "title": "Ne Zha 2",
+    "release_year": 2025,
+    "runtime": 144,
+    "cast": "Lu Yanting, Joseph, Han Mo, Chen Hao, Lu Qi",
+    "director": "Jiao Zi",
+    "genre_ids": [
+      16,
+      14,
+      12
+    ]
+  },
+  {
+    "film_id": 46,
+    "tmdb_id": 1539104,
+    "title": "JUJUTSU KAISEN: Execution -Shibuya Incident x The Culling Game Begins-",
+    "release_year": 2025,
+    "runtime": 88,
+    "cast": "Junya Enoki, Megumi Ogata, Koji Yusa, Daisuke Namikawa, Yuma Uchida",
+    "director": "Shota Goshozono",
+    "genre_ids": [
+      16,
+      28,
+      0
+    ]
+  },
+  {
+    "film_id": 47,
+    "tmdb_id": 803796,
+    "title": "KPop Demon Hunters",
+    "release_year": 2025,
+    "runtime": 96,
+    "cast": "Arden Cho, May Hong, Ji-young Yoo, Ahn Hyo-seop, Yunjin Kim",
+    "director": "Chris Appelhans",
+    "genre_ids": [
+      14,
+      10402,
+      35
+    ]
+  },
+  {
+    "film_id": 48,
+    "tmdb_id": 1422096,
+    "title": "Good Boy",
+    "release_year": 2025,
+    "runtime": 73,
+    "cast": "Shane Jensen, Larry Fessenden, Arielle Friedman, Stuart Rudin, Anya Krawcheck",
+    "director": "Ben Leonberg",
+    "genre_ids": [
+      27,
+      53,
+      0
+    ]
+  },
+  {
+    "film_id": 49,
+    "tmdb_id": 269149,
+    "title": "Zootopia",
+    "release_year": 2016,
+    "runtime": 109,
+    "cast": "Ginnifer Goodwin, Jason Bateman, Idris Elba, Jenny Slate, Nate Torrence",
+    "director": "Byron Howard",
+    "genre_ids": [
+      16,
+      12,
+      10751
+    ]
+  },
+  {
+    "film_id": 50,
+    "tmdb_id": 575265,
+    "title": "Mission: Impossible - The Final Reckoning",
+    "release_year": 2025,
+    "runtime": 170,
+    "cast": "Tom Cruise, Hayley Atwell, Ving Rhames, Simon Pegg, Esai Morales",
+    "director": "Christopher McQuarrie",
+    "genre_ids": [
+      28,
+      53,
+      12
+    ]
+  }
+]

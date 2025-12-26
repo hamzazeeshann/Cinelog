@@ -1,18 +1,19 @@
 #pragma once
 
-#include "../models/FilmLog.h"
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
-#define BTREE_ORDER 5
+#define BTREE_ORDER 100
 
+template<typename RecordType>
 struct BTreeNode {
     bool isLeaf;
     int numKeys;
-    FilmLog keys[BTREE_ORDER - 1];
+    RecordType keys[BTREE_ORDER - 1];
     long children[BTREE_ORDER];
     long nodePos;
 
@@ -28,8 +29,8 @@ struct BTreeNode {
         offset += sizeof(bool);
         memcpy(buffer + offset, &numKeys, sizeof(int));
         offset += sizeof(int);
-        memcpy(buffer + offset, keys, sizeof(FilmLog) * (BTREE_ORDER - 1));
-        offset += sizeof(FilmLog) * (BTREE_ORDER - 1);
+        memcpy(buffer + offset, keys, sizeof(RecordType) * (BTREE_ORDER - 1));
+        offset += sizeof(RecordType) * (BTREE_ORDER - 1);
         memcpy(buffer + offset, children, sizeof(long) * BTREE_ORDER);
         offset += sizeof(long) * BTREE_ORDER;
         memcpy(buffer + offset, &nodePos, sizeof(long));
@@ -41,19 +42,20 @@ struct BTreeNode {
         offset += sizeof(bool);
         memcpy(&numKeys, buffer + offset, sizeof(int));
         offset += sizeof(int);
-        memcpy(keys, buffer + offset, sizeof(FilmLog) * (BTREE_ORDER - 1));
-        offset += sizeof(FilmLog) * (BTREE_ORDER - 1);
+        memcpy(keys, buffer + offset, sizeof(RecordType) * (BTREE_ORDER - 1));
+        offset += sizeof(RecordType) * (BTREE_ORDER - 1);
         memcpy(children, buffer + offset, sizeof(long) * BTREE_ORDER);
         offset += sizeof(long) * BTREE_ORDER;
         memcpy(&nodePos, buffer + offset, sizeof(long));
     }
 
     static size_t getSerializedSize() {
-        return sizeof(bool) + sizeof(int) + sizeof(FilmLog) * (BTREE_ORDER - 1) 
+        return sizeof(bool) + sizeof(int) + sizeof(RecordType) * (BTREE_ORDER - 1) 
                + sizeof(long) * BTREE_ORDER + sizeof(long);
     }
 };
 
+template<typename RecordType>
 class BTree {
 private:
     fstream file;
@@ -63,30 +65,30 @@ private:
 
     long allocateNode() {
         long pos = nextPos;
-        nextPos += BTreeNode::getSerializedSize();
+        nextPos += BTreeNode<RecordType>::getSerializedSize();
         return pos;
     }
 
-    void writeNode(const BTreeNode& node) {
-        char buffer[BTreeNode::getSerializedSize()];
+    void writeNode(const BTreeNode<RecordType>& node) {
+        char buffer[BTreeNode<RecordType>::getSerializedSize()];
         node.serialize(buffer);
         file.seekp(node.nodePos);
-        file.write(buffer, BTreeNode::getSerializedSize());
+        file.write(buffer, BTreeNode<RecordType>::getSerializedSize());
         file.flush();
     }
 
-    BTreeNode readNode(long pos) {
-        char buffer[BTreeNode::getSerializedSize()];
+    BTreeNode<RecordType> readNode(long pos) {
+        char buffer[BTreeNode<RecordType>::getSerializedSize()];
         file.seekg(pos);
-        file.read(buffer, BTreeNode::getSerializedSize());
-        BTreeNode node;
+        file.read(buffer, BTreeNode<RecordType>::getSerializedSize());
+        BTreeNode<RecordType> node;
         node.deserialize(buffer);
         return node;
     }
 
-    void splitChild(BTreeNode& parent, int index) {
-        BTreeNode fullChild = readNode(parent.children[index]);
-        BTreeNode newChild;
+    void splitChild(BTreeNode<RecordType>& parent, int index) {
+        BTreeNode<RecordType> fullChild = readNode(parent.children[index]);
+        BTreeNode<RecordType> newChild;
         newChild.isLeaf = fullChild.isLeaf;
         newChild.numKeys = BTREE_ORDER / 2 - 1;
         newChild.nodePos = allocateNode();
@@ -101,7 +103,7 @@ private:
             }
         }
 
-        FilmLog midKey = fullChild.keys[BTREE_ORDER / 2 - 1];
+        RecordType midKey = fullChild.keys[BTREE_ORDER / 2 - 1];
         fullChild.numKeys = BTREE_ORDER / 2 - 1;
 
         for (int i = parent.numKeys; i > index; i--) {
@@ -120,11 +122,11 @@ private:
         writeNode(parent);
     }
 
-    void insertNonFull(BTreeNode& node, const FilmLog& record) {
+    void insertNonFull(BTreeNode<RecordType>& node, const RecordType& record) {
         int i = node.numKeys - 1;
 
         if (node.isLeaf) {
-            while (i >= 0 && record.logId < node.keys[i].logId) {
+            while (i >= 0 && record.getId() < node.keys[i].getId()) {
                 node.keys[i + 1] = node.keys[i];
                 i--;
             }
@@ -132,14 +134,14 @@ private:
             node.numKeys++;
             writeNode(node);
         } else {
-            while (i >= 0 && record.logId < node.keys[i].logId) {
+            while (i >= 0 && record.getId() < node.keys[i].getId()) {
                 i--;
             }
             i++;
-            BTreeNode child = readNode(node.children[i]);
+            BTreeNode<RecordType> child = readNode(node.children[i]);
             if (child.numKeys == BTREE_ORDER - 1) {
                 splitChild(node, i);
-                if (record.logId > node.keys[i].logId) {
+                if (record.getId() > node.keys[i].getId()) {
                     i++;
                 }
                 child = readNode(node.children[i]);
@@ -148,13 +150,13 @@ private:
         }
     }
 
-    bool searchNode(const BTreeNode& node, int logId, FilmLog& result) {
+    bool searchNode(const BTreeNode<RecordType>& node, int id, RecordType& result) {
         int i = 0;
-        while (i < node.numKeys && logId > node.keys[i].logId) {
+        while (i < node.numKeys && id > node.keys[i].getId()) {
             i++;
         }
 
-        if (i < node.numKeys && logId == node.keys[i].logId) {
+        if (i < node.numKeys && id == node.keys[i].getId()) {
             result = node.keys[i];
             return true;
         }
@@ -163,11 +165,11 @@ private:
             return false;
         }
 
-        BTreeNode child = readNode(node.children[i]);
-        return searchNode(child, logId, result);
+        BTreeNode<RecordType> child = readNode(node.children[i]);
+        return searchNode(child, id, result);
     }
 
-    void collectAllRecords(const BTreeNode& node, vector<FilmLog>& records) {
+    void collectAllRecords(const BTreeNode<RecordType>& node, vector<RecordType>& records) {
         for (int i = 0; i < node.numKeys; i++) {
             records.push_back(node.keys[i]);
         }
@@ -175,14 +177,14 @@ private:
         if (!node.isLeaf) {
             for (int i = 0; i <= node.numKeys; i++) {
                 if (node.children[i] != -1) {
-                    BTreeNode child = readNode(node.children[i]);
+                    BTreeNode<RecordType> child = readNode(node.children[i]);
                     collectAllRecords(child, records);
                 }
             }
         }
     }
 
-    void removeFromLeaf(BTreeNode& node, int idx) {
+    void removeFromLeaf(BTreeNode<RecordType>& node, int idx) {
         for (int i = idx + 1; i < node.numKeys; i++) {
             node.keys[i - 1] = node.keys[i];
         }
@@ -190,13 +192,13 @@ private:
         writeNode(node);
     }
 
-    bool deleteKey(BTreeNode& node, int logId) {
+    bool deleteKey(BTreeNode<RecordType>& node, int id) {
         int idx = 0;
-        while (idx < node.numKeys && node.keys[idx].logId < logId) {
+        while (idx < node.numKeys && node.keys[idx].getId() < id) {
             idx++;
         }
 
-        if (idx < node.numKeys && node.keys[idx].logId == logId) {
+        if (idx < node.numKeys && node.keys[idx].getId() == id) {
             if (node.isLeaf) {
                 removeFromLeaf(node, idx);
                 return true;
@@ -207,9 +209,29 @@ private:
             return false;
         }
 
-        BTreeNode child = readNode(node.children[idx]);
-        bool found = deleteKey(child, logId);
+        BTreeNode<RecordType> child = readNode(node.children[idx]);
+        bool found = deleteKey(child, id);
         return found;
+    }
+
+    bool updateInTree(BTreeNode<RecordType>& node, int id, const RecordType& updatedRecord) {
+        int idx = 0;
+        while (idx < node.numKeys && node.keys[idx].getId() < id) {
+            idx++;
+        }
+
+        if (idx < node.numKeys && node.keys[idx].getId() == id) {
+            node.keys[idx] = updatedRecord;
+            writeNode(node);
+            return true;
+        }
+
+        if (node.isLeaf) {
+            return false;
+        }
+
+        BTreeNode<RecordType> child = readNode(node.children[idx]);
+        return updateInTree(child, id, updatedRecord);
     }
 
 public:
@@ -222,9 +244,9 @@ public:
             file.close();
             file.open(filename, ios::in | ios::out | ios::binary);
             
-            BTreeNode root;
+            BTreeNode<RecordType> root;
             root.nodePos = nextPos;
-            nextPos += BTreeNode::getSerializedSize();
+            nextPos += BTreeNode<RecordType>::getSerializedSize();
             rootPos = root.nodePos;
             
             file.seekp(0);
@@ -247,11 +269,11 @@ public:
         }
     }
 
-    void insert(const FilmLog& record) {
-        BTreeNode root = readNode(rootPos);
+    void insert(const RecordType& record) {
+        BTreeNode<RecordType> root = readNode(rootPos);
 
         if (root.numKeys == BTREE_ORDER - 1) {
-            BTreeNode newRoot;
+            BTreeNode<RecordType> newRoot;
             newRoot.isLeaf = false;
             newRoot.numKeys = 0;
             newRoot.nodePos = allocateNode();
@@ -265,59 +287,36 @@ public:
         }
     }
 
-    bool search(int logId, FilmLog& result) {
-        BTreeNode root = readNode(rootPos);
-        return searchNode(root, logId, result);
+    bool search(int id, RecordType& result) {
+        BTreeNode<RecordType> root = readNode(rootPos);
+        return searchNode(root, id, result);
     }
 
-    vector<FilmLog> getAllRecords() {
-        vector<FilmLog> records;
-        BTreeNode root = readNode(rootPos);
+    vector<RecordType> getAllRecords() {
+        vector<RecordType> records;
+        BTreeNode<RecordType> root = readNode(rootPos);
         collectAllRecords(root, records);
         return records;
     }
 
-    int getMaxLogId() {
-        vector<FilmLog> records = getAllRecords();
+    int getMaxId() {
+        vector<RecordType> records = getAllRecords();
         int maxId = 0;
         for (const auto& rec : records) {
-            if (rec.logId > maxId) {
-                maxId = rec.logId;
+            if (rec.getId() > maxId) {
+                maxId = rec.getId();
             }
         }
         return maxId;
     }
 
-    bool deleteRecord(int logId) {
-        BTreeNode root = readNode(rootPos);
-        return deleteKey(root, logId);
+    bool deleteRecord(int id) {
+        BTreeNode<RecordType> root = readNode(rootPos);
+        return deleteKey(root, id);
     }
 
-    bool updateRecord(int logId, const FilmLog& updatedLog) {
-        BTreeNode root = readNode(rootPos);
-        if (updateInTree(root, logId, updatedLog)) {
-            return true;
-        }
-        return false;
-    }
-
-    bool updateInTree(BTreeNode& node, int logId, const FilmLog& updatedLog) {
-        int idx = 0;
-        while (idx < node.numKeys && node.keys[idx].logId < logId) {
-            idx++;
-        }
-
-        if (idx < node.numKeys && node.keys[idx].logId == logId) {
-            node.keys[idx] = updatedLog;
-            writeNode(node);
-            return true;
-        }
-
-        if (node.isLeaf) {
-            return false;
-        }
-
-        BTreeNode child = readNode(node.children[idx]);
-        return updateInTree(child, logId, updatedLog);
+    bool updateRecord(int id, const RecordType& updatedRecord) {
+        BTreeNode<RecordType> root = readNode(rootPos);
+        return updateInTree(root, id, updatedRecord);
     }
 };

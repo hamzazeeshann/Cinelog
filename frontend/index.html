@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinelog - Your Movie Diary</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav id="navbar" style="display: none;">
+        <div class="nav-container">
+            <div class="nav-brand">CINELOG</div>
+            <div class="nav-links">
+                <a href="#" id="navHome">Films</a>
+                <a href="#" id="navDiary">Diary</a>
+                <a href="#" id="navAdmin" style="display: none;">Admin</a>
+                <a href="#" id="navLogout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login View -->
+    <div id="loginView" class="view active">
+        <div class="login-background"></div>
+        <div class="login-card">
+            <h1>CINELOG</h1>
+            <p class="subtitle">Track films you've watched. Save those you want to see.</p>
+            
+            <div class="login-form">
+                <input type="text" id="loginUsername" placeholder="Username" />
+                <input type="password" id="loginPassword" placeholder="Password" />
+                <button id="loginBtn">Sign In</button>
+                <p class="hint">Default admin: username = admin, password = admin123</p>
+            </div>
+            
+            <div class="register-toggle">
+                <p>Don't have an account? <a href="#" id="showRegister">Create one</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register View -->
+    <div id="registerView" class="view">
+        <div class="login-background"></div>
+        <div class="login-card">
+            <h1>Join CINELOG</h1>
+            <p class="subtitle">Start your movie journey today</p>
+            
+            <div class="login-form">
+                <input type="text" id="regUsername" placeholder="Username" />
+                <input type="email" id="regEmail" placeholder="Email" />
+                <input type="password" id="regPassword" placeholder="Password" />
+                <textarea id="regBio" placeholder="Tell us about yourself" rows="3"></textarea>
+                <button id="registerBtn">Create Account</button>
+            </div>
+            
+            <div class="register-toggle">
+                <p>Already have an account? <a href="#" id="showLogin">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Grid View -->
+    <div id="homeView" class="view">
+        <div class="content-container">
+            <h2 class="section-title">Popular Films</h2>
+            <div id="filmGrid" class="film-grid"></div>
+        </div>
+    </div>
+
+    <!-- Diary View -->
+    <div id="diaryView" class="view">
+        <div class="content-container">
+            <h2 class="section-title">Your Diary</h2>
+            <div id="diaryList" class="diary-list"></div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminView" class="view">
+        <div class="content-container">
+            <h2 class="section-title">Admin Dashboard</h2>
+            
+            <div class="admin-section">
+                <h3>Add New Film</h3>
+                <div class="admin-form">
+                    <input type="text" id="adminTitle" placeholder="Title" />
+                    <input type="number" id="adminTmdbId" placeholder="TMDB ID" />
+                    <input type="number" id="adminYear" placeholder="Release Year" />
+                    <input type="number" id="adminRuntime" placeholder="Runtime (minutes)" />
+                    <input type="text" id="adminCast" placeholder="Cast (comma-separated)" />
+                    <input type="text" id="adminDirector" placeholder="Director" />
+                    <input type="number" id="adminGenre1" placeholder="Genre ID 1" />
+                    <input type="number" id="adminGenre2" placeholder="Genre ID 2" />
+                    <input type="number" id="adminGenre3" placeholder="Genre ID 3" />
+                    <button id="adminAddFilmBtn">Add Film</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Manage Films</h3>
+                <div id="adminFilmList" class="admin-table"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Manage Users</h3>
+                <div id="adminUserList" class="admin-table"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movie Detail Modal -->
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-body">
+                <div class="modal-left">
+                    <img id="modalPoster" src="" alt="Movie Poster" />
+                </div>
+                <div class="modal-right">
+                    <h2 id="modalTitle"></h2>
+                    <p id="modalYear" class="modal-meta"></p>
+                    <p id="modalRuntime" class="modal-meta"></p>
+                    <p id="modalDirector" class="modal-info"><strong>Director:</strong> </p>
+                    <p id="modalCast" class="modal-info"><strong>Cast:</strong> </p>
+                    
+                    <div class="rating-section">
+                        <h3>Rate this film</h3>
+                        <div class="star-rating" id="starRating">
+                            <span data-rating="1">★</span>
+                            <span data-rating="2">★</span>
+                            <span data-rating="3">★</span>
+                            <span data-rating="4">★</span>
+                            <span data-rating="5">★</span>
+                        </div>
+                        <textarea id="reviewText" placeholder="Write your review (optional)" rows="4"></textarea>
+                        <button id="logFilmBtn">Log This Film</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

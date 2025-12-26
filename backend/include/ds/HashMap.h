@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <vector>
+#include <type_traits>
 
 using namespace std;
 
@@ -72,7 +73,18 @@ public:
     }
 
     ~HashMap() {
-        clear();
+        for (int i = 0; i < capacity; i++) {
+            HashNode<K, V>* node = buckets[i];
+            while (node != nullptr) {
+                HashNode<K, V>* temp = node;
+                node = node->next;
+                // Fix memory leak: delete string keys if K is char*
+                if constexpr (std::is_same_v<K, const char*> || std::is_same_v<K, char*>) {
+                    delete[] temp->key;
+                }
+                delete temp;
+            }
+        }
         delete[] buckets;
     }
 

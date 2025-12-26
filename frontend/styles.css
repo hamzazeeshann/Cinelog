@@ -1,0 +1,554 @@
+/* Cinelog Stylesheet - Letterboxd-inspired dark theme */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #14181C;
+    color: #FFFFFF;
+    line-height: 1.6;
+}
+
+/* Navigation Bar */
+#navbar {
+    background-color: #2C3440;
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #00E054;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-links a {
+    color: #99AABB;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #FFFFFF;
+}
+
+/* View Management */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+/* Login/Register View */
+.login-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1f2e 0%, #14181c 100%);
+    z-index: -1;
+}
+
+.login-card {
+    max-width: 450px;
+    margin: 8vh auto;
+    padding: 3rem;
+    background-color: #2C3440;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.login-card h1 {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: #00E054;
+    letter-spacing: 3px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #99AABB;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.login-form input,
+.login-form textarea {
+    padding: 1rem;
+    background-color: #14181C;
+    border: 2px solid #445566;
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.login-form input:focus,
+.login-form textarea:focus {
+    outline: none;
+    border-color: #00E054;
+}
+
+.login-form button {
+    padding: 1rem;
+    background-color: #00E054;
+    color: #14181C;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.login-form button:hover {
+    background-color: #00C047;
+}
+
+.login-form button:active {
+    transform: scale(0.98);
+}
+
+.hint {
+    text-align: center;
+    color: #99AABB;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.register-toggle {
+    margin-top: 2rem;
+    text-align: center;
+    color: #99AABB;
+}
+
+.register-toggle a {
+    color: #40BCF4;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.register-toggle a:hover {
+    text-decoration: underline;
+}
+
+/* Content Container */
+.content-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.section-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: #FFFFFF;
+}
+
+/* Film Grid */
+.film-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+.film-card {
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.film-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 0 3px #00E054;
+}
+
+.film-poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    background-color: #2C3440;
+    display: block;
+}
+
+.film-title {
+    padding: 0.75rem;
+    background-color: #2C3440;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Diary List */
+.diary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.diary-entry {
+    background-color: #2C3440;
+    padding: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.diary-poster {
+    width: 100px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+    background-color: #14181C;
+}
+
+.diary-info {
+    flex: 1;
+}
+
+.diary-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.diary-rating {
+    color: #FF8000;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.diary-review {
+    color: #99AABB;
+    line-height: 1.5;
+}
+
+/* Admin Dashboard */
+.admin-section {
+    background-color: #2C3440;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.admin-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #00E054;
+}
+
+.admin-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.admin-form input {
+    padding: 0.75rem;
+    background-color: #14181C;
+    border: 2px solid #445566;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 0.95rem;
+}
+
+.admin-form input:focus {
+    outline: none;
+    border-color: #00E054;
+}
+
+.admin-form button {
+    grid-column: 1 / -1;
+    padding: 1rem;
+    background-color: #00E054;
+    color: #14181C;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.admin-form button:hover {
+    background-color: #00C047;
+}
+
+.admin-table {
+    overflow-x: auto;
+}
+
+.admin-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background-color: #14181C;
+    padding: 1rem;
+    text-align: left;
+    color: #00E054;
+    font-weight: 600;
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #445566;
+}
+
+.admin-table button {
+    padding: 0.5rem 1rem;
+    background-color: #FF4444;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+.admin-table button:hover {
+    background-color: #CC0000;
+}
+
+/* Movie Detail Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(20, 24, 28, 0.95);
+    overflow: auto;
+}
+
+.modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #2C3440;
+    margin: 2rem;
+    padding: 0;
+    border-radius: 12px;
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.close {
+    position: absolute;
+    right: 1.5rem;
+    top: 1.5rem;
+    color: #99AABB;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #FFFFFF;
+}
+
+.modal-body {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.modal-left {
+    flex-shrink: 0;
+}
+
+#modalPoster {
+    width: 300px;
+    height: 450px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: #14181C;
+}
+
+.modal-right {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#modalTitle {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.modal-meta {
+    color: #99AABB;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.modal-info {
+    color: #99AABB;
+    margin: 1rem 0;
+    line-height: 1.6;
+}
+
+.modal-info strong {
+    color: #FFFFFF;
+}
+
+.rating-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #445566;
+}
+
+.rating-section h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: #00E054;
+}
+
+.star-rating {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.star-rating span {
+    cursor: pointer;
+    color: #445566;
+    transition: color 0.2s;
+}
+
+.star-rating span:hover,
+.star-rating span.active {
+    color: #FF8000;
+}
+
+#reviewText {
+    width: 100%;
+    padding: 1rem;
+    background-color: #14181C;
+    border: 2px solid #445566;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+}
+
+#reviewText:focus {
+    outline: none;
+    border-color: #00E054;
+}
+
+#logFilmBtn {
+    width: 100%;
+    padding: 1rem;
+    background-color: #00E054;
+    color: #14181C;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#logFilmBtn:hover {
+    background-color: #00C047;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: #2C3440;
+    color: #FFFFFF;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 2000;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success {
+    border-left: 4px solid #00E054;
+}
+
+.toast.error {
+    border-left: 4px solid #FF4444;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .film-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .modal-body {
+        flex-direction: column;
+    }
+
+    #modalPoster {
+        width: 100%;
+        height: auto;
+    }
+
+    .nav-links {
+        gap: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .admin-form {
+        grid-template-columns: 1fr;
+    }
+}

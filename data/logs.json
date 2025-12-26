@@ -1,0 +1,234 @@
+[
+  {
+    "log_id": 1,
+    "user_id": 2,
+    "film_id": 20,
+    "rating": 4.0,
+    "review": "A masterpiece",
+    "watch_date": 1751799442
+  },
+  {
+    "log_id": 2,
+    "user_id": 2,
+    "film_id": 48,
+    "rating": 2.4,
+    "review": "Incredible story",
+    "watch_date": 1746466921
+  },
+  {
+    "log_id": 3,
+    "user_id": 2,
+    "film_id": 34,
+    "rating": 4.6,
+    "review": "Really enjoyed this",
+    "watch_date": 1751725671
+  },
+  {
+    "log_id": 4,
+    "user_id": 2,
+    "film_id": 29,
+    "rating": 4.1,
+    "review": "Great movie!",
+    "watch_date": 1747615677
+  },
+  {
+    "log_id": 5,
+    "user_id": 2,
+    "film_id": 35,
+    "rating": 4.7,
+    "review": "Brilliant performances",
+    "watch_date": 1754366400
+  },
+  {
+    "log_id": 6,
+    "user_id": 2,
+    "film_id": 17,
+    "rating": 2.7,
+    "review": "Loved it!",
+    "watch_date": 1764177595
+  },
+  {
+    "log_id": 7,
+    "user_id": 2,
+    "film_id": 49,
+    "rating": 3.2,
+    "review": "Great movie!",
+    "watch_date": 1747672838
+  },
+  {
+    "log_id": 8,
+    "user_id": 3,
+    "film_id": 41,
+    "rating": 3.1,
+    "review": "Great movie!",
+    "watch_date": 1762355544
+  },
+  {
+    "log_id": 9,
+    "user_id": 3,
+    "film_id": 39,
+    "rating": 4.3,
+    "review": "Really enjoyed this",
+    "watch_date": 1745469540
+  },
+  {
+    "log_id": 10,
+    "user_id": 3,
+    "film_id": 26,
+    "rating": 4.1,
+    "review": "Amazing cinematography",
+    "watch_date": 1748478551
+  },
+  {
+    "log_id": 11,
+    "user_id": 3,
+    "film_id": 12,
+    "rating": 4.9,
+    "review": "Amazing cinematography",
+    "watch_date": 1736070964
+  },
+  {
+    "log_id": 12,
+    "user_id": 3,
+    "film_id": 10,
+    "rating": 4.5,
+    "review": "A masterpiece",
+    "watch_date": 1741940057
+  },
+  {
+    "log_id": 13,
+    "user_id": 3,
+    "film_id": 38,
+    "rating": 4.5,
+    "review": "",
+    "watch_date": 1752541396
+  },
+  {
+    "log_id": 14,
+    "user_id": 3,
+    "film_id": 23,
+    "rating": 3.9,
+    "review": "Amazing cinematography",
+    "watch_date": 1745256419
+  },
+  {
+    "log_id": 15,
+    "user_id": 3,
+    "film_id": 21,
+    "rating": 4.4,
+    "review": "A masterpiece",
+    "watch_date": 1753774737
+  },
+  {
+    "log_id": 16,
+    "user_id": 3,
+    "film_id": 31,
+    "rating": 2.3,
+    "review": "Loved it!",
+    "watch_date": 1739021093
+  },
+  {
+    "log_id": 17,
+    "user_id": 3,
+    "film_id": 33,
+    "rating": 2.6,
+    "review": "",
+    "watch_date": 1756995259
+  },
+  {
+    "log_id": 18,
+    "user_id": 3,
+    "film_id": 28,
+    "rating": 3.4,
+    "review": "Great movie!",
+    "watch_date": 1753982946
+  },
+  {
+    "log_id": 19,
+    "user_id": 3,
+    "film_id": 34,
+    "rating": 2.4,
+    "review": "Amazing cinematography",
+    "watch_date": 1742446198
+  },
+  {
+    "log_id": 20,
+    "user_id": 3,
+    "film_id": 47,
+    "rating": 3.1,
+    "review": "Amazing cinematography",
+    "watch_date": 1750970942
+  },
+  {
+    "log_id": 21,
+    "user_id": 3,
+    "film_id": 13,
+    "rating": 4.0,
+    "review": "Great movie!",
+    "watch_date": 1749268675
+  },
+  {
+    "log_id": 22,
+    "user_id": 4,
+    "film_id": 35,
+    "rating": 4.6,
+    "review": "Loved it!",
+    "watch_date": 1742527983
+  },
+  {
+    "log_id": 23,
+    "user_id": 4,
+    "film_id": 45,
+    "rating": 2.6,
+    "review": "Loved it!",
+    "watch_date": 1766765850
+  },
+  {
+    "log_id": 24,
+    "user_id": 4,
+    "film_id": 50,
+    "rating": 4.2,
+    "review": "Loved it!",
+    "watch_date": 1743254713
+  },
+  {
+    "log_id": 25,
+    "user_id": 4,
+    "film_id": 38,
+    "rating": 2.3,
+    "review": "",
+    "watch_date": 1747460256
+  },
+  {
+    "log_id": 26,
+    "user_id": 4,
+    "film_id": 39,
+    "rating": 4.2,
+    "review": "",
+    "watch_date": 1753126598
+  },
+  {
+    "log_id": 27,
+    "user_id": 4,
+    "film_id": 14,
+    "rating": 2.2,
+    "review": "Really enjoyed this",
+    "watch_date": 1749221722
+  },
+  {
+    "log_id": 28,
+    "user_id": 4,
+    "film_id": 13,
+    "rating": 3.3,
+    "review": "Brilliant performances",
+    "watch_date": 1750170000
+  },
+  {
+    "log_id": 29,
+    "user_id": 4,
+    "film_id": 12,
+    "rating": 2.9,
+    "review": "A masterpiece",
+    "watch_date": 1760630936
+  }
+]

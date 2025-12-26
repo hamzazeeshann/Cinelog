@@ -1,0 +1,38 @@
+[
+  {
+    "user_id": 1,
+    "username": "admin",
+    "email": "admin@cinelog.com",
+    "password_hash": "admin123",
+    "bio": "System Administrator",
+    "join_date": 1766771015,
+    "isAdmin": true
+  },
+  {
+    "user_id": 2,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password_hash": "password123",
+    "bio": "Movie enthusiast",
+    "join_date": 1766771015,
+    "isAdmin": false
+  },
+  {
+    "user_id": 3,
+    "username": "jane_smith",
+    "email": "jane@example.com",
+    "password_hash": "password123",
+    "bio": "Film critic",
+    "join_date": 1766771015,
+    "isAdmin": false
+  },
+  {
+    "user_id": 4,
+    "username": "cinephile",
+    "email": "cinephile@example.com",
+    "password_hash": "password123",
+    "bio": "I love cinema!",
+    "join_date": 1766771015,
+    "isAdmin": false
+  }
+]
