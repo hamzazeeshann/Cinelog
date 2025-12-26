@@ -186,14 +186,25 @@ public:
             string title = extractStringValue(objStr, "title");
             strncpy(film.title, title.c_str(), sizeof(film.title) - 1);
             
-            film.release_year = extractIntValue(objStr, "release_year");
+            film.release_year = extractIntValue(objStr, "year");
             film.runtime = extractIntValue(objStr, "runtime");
             
-            string cast = extractStringValue(objStr, "cast");
+            string cast = extractStringValue(objStr, "cast_summary");
             strncpy(film.cast_summary, cast.c_str(), sizeof(film.cast_summary) - 1);
             
             string director = extractStringValue(objStr, "director");
             strncpy(film.director, director.c_str(), sizeof(film.director) - 1);
+            
+            string poster = extractStringValue(objStr, "poster_path");
+            strncpy(film.poster_path, poster.c_str(), sizeof(film.poster_path) - 1);
+            
+            string backdrop = extractStringValue(objStr, "backdrop_path");
+            strncpy(film.backdrop_path, backdrop.c_str(), sizeof(film.backdrop_path) - 1);
+            
+            string tagline = extractStringValue(objStr, "tagline");
+            strncpy(film.tagline, tagline.c_str(), sizeof(film.tagline) - 1);
+            
+            film.vote_average = extractFloatValue(objStr, "vote_average");
             
             vector<int> genres = extractIntArray(objStr, "genre_ids");
             for (size_t i = 0; i < 3 && i < genres.size(); i++) {

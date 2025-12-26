@@ -12,8 +12,8 @@ struct Film {
     int runtime;
     char director[64];
     int genre_ids[3];
-    char poster_path[64];      // New: TMDB poster path
-    char backdrop_path[64];    // New: TMDB backdrop path
+    char poster_path[200];     // Increased for full Amazon URLs
+    char backdrop_path[200];   // Increased for full backdrop URLs
     char tagline[128];         // New: Movie tagline
     float vote_average;        // New: TMDB rating
     char cast_summary[256];    // Kept for compatibility
