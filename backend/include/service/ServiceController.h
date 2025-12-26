@@ -367,6 +367,8 @@ public:
                     
                     json << "{\"film_id\":" << film.film_id
                          << ",\"title\":\"" << escapeJson(film.title) << "\""
+                         << ",\"year\":" << film.release_year
+                         << ",\"vote_average\":" << fixed << setprecision(1) << film.vote_average
                          << ",\"poster_path\":\"" << escapeJson(film.poster_path) << "\"}";
                     count++;
                 }
@@ -463,9 +465,31 @@ public:
                  << ",\"poster_path\":\"" << escapeJson(films[i].poster_path) << "\"}";
         }
         
-        json << "],\"recent_logs\":";
-        json << getRecentLogs(5);
-        json << "}";
+        json << "],\"recent_logs\":[";
+        
+        // Get recent logs
+        vector<Log> allLogs = logTree->getAllRecords();
+        sort(allLogs.begin(), allLogs.end(), [](const Log& a, const Log& b) {
+            return a.watch_date > b.watch_date;
+        });
+        
+        int logCount = 0;
+        for (const auto& log : allLogs) {
+            if (logCount >= 5) break;
+            
+            User user;
+            Film film;
+            if (userTree->search(log.user_id, user) && filmTree->search(log.film_id, film)) {
+                if (logCount > 0) json << ",";
+                json << "{\"username\":\"" << escapeJson(user.username) << "\""
+                     << ",\"film_title\":\"" << escapeJson(film.title) << "\""
+                     << ",\"rating\":" << fixed << setprecision(1) << log.rating
+                     << ",\"date\":" << log.watch_date << "}";
+                logCount++;
+            }
+        }
+        
+        json << "]}";
         
         return json.str();
     }
