@@ -223,7 +223,7 @@ async function showHomePage() {
                     <h2>Recent Activity</h2>
                 </div>
                 <div class="activity-feed">
-                    ${JSON.parse(data.recent_logs).logs.map(log => `
+                    ${data.recent_logs && data.recent_logs.length > 0 ? data.recent_logs.map(log => `
                         <div class="activity-item">
                             <div class="activity-avatar">👤</div>
                             <div class="activity-text">
@@ -231,7 +231,7 @@ async function showHomePage() {
                                 <span class="activity-rating">${'⭐'.repeat(Math.floor(log.rating))}</span>
                             </div>
                         </div>
-                    `).join('')}
+                    `).join('') : '<div class="empty-state"><p>No recent activity</p></div>'}
                 </div>
             </div>
         `;

@@ -56,6 +56,23 @@ with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
         except:
             rating = 7.0
         
+        # Clean and upgrade poster URL quality
+        poster_url = row['Poster_Link'].strip()
+        # Remove any trailing dots/ellipsis
+        if poster_url.endswith('...'):
+            poster_url = poster_url[:-3]
+        elif poster_url.endswith('..'):
+            poster_url = poster_url[:-2]
+        
+        # Upgrade Amazon image quality by modifying the URL parameters
+        # Replace the small size specification with larger one
+        if '_V1_UX67_CR0,0,67,98_AL_' in poster_url:
+            poster_url = poster_url.replace('_V1_UX67_CR0,0,67,98_AL_', '_V1_UX300_CR0,0,300,450_AL_')
+        
+        # Remove .jpg extension for better quality
+        if poster_url.endswith('.jpg'):
+            poster_url = poster_url[:-4]
+        
         film_data = {
             'film_id': film_id,
             'tmdb_id': film_id * 100,
@@ -64,7 +81,7 @@ with open('Some CSV/imdb_top_1000.csv', 'r', encoding='utf-8') as csvfile:
             'runtime': parse_runtime(row['Runtime']),
             'director': row['Director'],
             'genres': genre_list,
-            'poster': row['Poster_Link'],
+            'poster': poster_url,
             'overview': row['Overview'][:127] if row['Overview'] else 'No overview available',
             'rating': rating,
             'cast': cast_summary

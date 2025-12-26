@@ -5,7 +5,7 @@
     "email": "admin@cinelog.com",
     "password_hash": "admin123",
     "bio": "System Administrator",
-    "join_date": 1766775172,
+    "join_date": 1766778428,
     "isAdmin": true,
     "avatar_id": 1
   },
@@ -15,7 +15,7 @@
     "email": "alice@cinelog.com",
     "password_hash": "password123",
     "bio": "Film enthusiast and critic",
-    "join_date": 1766775172,
+    "join_date": 1766778428,
     "isAdmin": false,
     "avatar_id": 2
   },
@@ -25,7 +25,7 @@
     "email": "bob@cinelog.com",
     "password_hash": "password123",
     "bio": "Movie lover",
-    "join_date": 1766775172,
+    "join_date": 1766778428,
     "isAdmin": false,
     "avatar_id": 3
   },
@@ -35,7 +35,7 @@
     "email": "charlie@cinelog.com",
     "password_hash": "password123",
     "bio": "Cinema fan",
-    "join_date": 1766775172,
+    "join_date": 1766778428,
     "isAdmin": false,
     "avatar_id": 4
   }
