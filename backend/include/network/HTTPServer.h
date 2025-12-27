@@ -163,19 +163,6 @@ private:
             string result = controller->getFilmById(filmId);
             return buildHTTPResponse(200, "OK", result);
         }
-        else if (req.path.find("/api/search?q=") == 0 && req.method == "GET") {
-            size_t qPos = req.path.find("q=");
-            if (qPos != string::npos) {
-                string query = req.path.substr(qPos + 2);
-                size_t pos = 0;
-                while ((pos = query.find("%20")) != string::npos) {
-                    query.replace(pos, 3, " ");
-                }
-                string result = controller->searchFilms(query);
-                return buildHTTPResponse(200, "OK", result);
-            }
-            return buildHTTPResponse(400, "Bad Request", "{\"status\":\"error\",\"message\":\"Invalid query\"}");
-        }
         
         // Log endpoints
         else if (req.path == "/api/logs" && req.method == "POST") {
@@ -239,6 +226,123 @@ private:
         // Genres
         else if (req.path == "/api/genres" && req.method == "GET") {
             string result = controller->getAllGenres();
+            return buildHTTPResponse(200, "OK", result);
+        }
+        
+        // Social endpoints
+        else if (req.path == "/api/social/follow" && req.method == "POST") {
+            setAuthFromToken(req.authToken);
+            int targetId = parseJsonInt(req.body, "target_id");
+            string result = controller->followUser(targetId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path == "/api/social/unfollow" && req.method == "POST") {
+            setAuthFromToken(req.authToken);
+            int targetId = parseJsonInt(req.body, "target_id");
+            string result = controller->unfollowUser(targetId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/social") != string::npos && req.method == "GET") {
+            size_t userStart = 10;
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
+            setAuthFromToken(req.authToken);
+            string result = controller->getUserSocial(userId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/user/") == 0 && req.path.find("/network") != string::npos && req.method == "GET") {
+            size_t userStart = 10;
+            size_t userEnd = req.path.find("/", userStart);
+            int userId = stoi(req.path.substr(userStart, userEnd - userStart));
+            string result = controller->getUserNetwork(userId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        
+        // User search endpoint
+        else if (req.path.find("/api/search?") == 0 && req.method == "GET") {
+            size_t qPos = req.path.find("q=");
+            size_t typePos = req.path.find("type=");
+            
+            if (qPos != string::npos) {
+                size_t qEnd = req.path.find("&", qPos);
+                if (qEnd == string::npos) qEnd = req.path.length();
+                string query = req.path.substr(qPos + 2, qEnd - (qPos + 2));
+                
+                // URL decode
+                size_t pos = 0;
+                while ((pos = query.find("%20")) != string::npos) {
+                    query.replace(pos, 3, " ");
+                }
+                
+                // Check search type
+                string result;
+                if (typePos != string::npos) {
+                    string type = req.path.substr(typePos + 5);
+                    if (type == "user" || type.find("user") == 0) {
+                        result = controller->searchUsers(query);
+                    } else {
+                        result = controller->searchFilms(query);
+                    }
+                } else {
+                    result = controller->searchFilms(query);
+                }
+                
+                return buildHTTPResponse(200, "OK", result);
+            }
+            return buildHTTPResponse(400, "Bad Request", "{\"status\":\"error\",\"message\":\"Invalid query\"}");
+        }
+        
+        // Admin endpoints
+        else if (req.path == "/api/admin/users" && req.method == "GET") {
+            setAuthFromToken(req.authToken);
+            string result = controller->adminGetAllUsers();
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path == "/api/admin/film" && req.method == "POST") {
+            setAuthFromToken(req.authToken);
+            
+            string title = parseJsonField(req.body, "title");
+            int year = parseJsonInt(req.body, "year");
+            int runtime = parseJsonInt(req.body, "runtime");
+            float rating = parseJsonFloat(req.body, "rating");
+            string director = parseJsonField(req.body, "director");
+            string cast = parseJsonField(req.body, "cast");
+            string tagline = parseJsonField(req.body, "tagline");
+            string overview = parseJsonField(req.body, "overview");
+            string posterPath = parseJsonField(req.body, "poster_path");
+            string backdropPath = parseJsonField(req.body, "backdrop_path");
+            
+            vector<int> genreIds;
+            // Parse genre_ids array if present
+            size_t genrePos = req.body.find("\"genre_ids\":[");
+            if (genrePos != string::npos) {
+                size_t genreStart = genrePos + 13;
+                size_t genreEnd = req.body.find("]", genreStart);
+                if (genreEnd != string::npos) {
+                    string genreStr = req.body.substr(genreStart, genreEnd - genreStart);
+                    istringstream genreStream(genreStr);
+                    string item;
+                    while (getline(genreStream, item, ',')) {
+                        try {
+                            genreIds.push_back(stoi(item));
+                        } catch (...) {}
+                    }
+                }
+            }
+            
+            string result = controller->adminAddFilm(title, year, runtime, rating, director, cast, tagline, overview, posterPath, backdropPath, genreIds);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/admin/film/") == 0 && req.method == "DELETE") {
+            setAuthFromToken(req.authToken);
+            int filmId = stoi(req.path.substr(16));
+            string result = controller->adminDeleteFilm(filmId);
+            return buildHTTPResponse(200, "OK", result);
+        }
+        else if (req.path.find("/api/admin/user/") == 0 && req.method == "DELETE") {
+            setAuthFromToken(req.authToken);
+            int userId = stoi(req.path.substr(16));
+            string result = controller->adminDeleteUser(userId);
             return buildHTTPResponse(200, "OK", result);
         }
         

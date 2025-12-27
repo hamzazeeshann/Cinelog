@@ -34,9 +34,13 @@
     <div id="searchOverlay" class="search-overlay">
         <div class="search-modal">
             <div class="search-header">
-                <input type="text" id="searchInput" placeholder="Search films..." autofocus>
+                <div class="search-tabs">
+                    <button class="search-tab active" data-search-type="films">Films</button>
+                    <button class="search-tab" data-search-type="people">People</button>
+                </div>
                 <button class="search-close">&times;</button>
             </div>
+            <input type="text" id="searchInput" placeholder="Search films..." autofocus>
             <div id="searchResults" class="search-results"></div>
         </div>
     </div>

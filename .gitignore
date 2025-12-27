@@ -39,9 +39,18 @@
 
 # debug information files
 *.dwo
-# Node modules and build artifacts
-client/node_modules/
+# Large files that exceed GitHub's 100MB limit
+tools/ratings.csv
+tools/credits.csv
+tools/movies_metadata.csv
 backend/build/.vs/**
 backend/cinelog_db*.bin
+client/node_modules/.cache/**
 backend/build/x64/Release/**
 backend/build/CMakeFiles/**
+
+# IDE and build artifacts
+.vs/
+.vscode/settings.json
+node_modules/
+client/node_modules/

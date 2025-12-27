@@ -2,6 +2,7 @@
 
 #include "../ds/BTree.h"
 #include "../ds/Trie.h"
+#include "../ds/SocialGraph.h"
 #include "../models/User.h"
 #include "../models/Film.h"
 #include "../models/Log.h"
@@ -27,6 +28,8 @@ private:
     BTree<List>* listTree;
     BTree<Interaction>* interactionTree;
     Trie* searchTrie;
+    Trie* userTrie;
+    SocialGraph* socialGraph;
     
     int nextUserId;
     int nextFilmId;
@@ -63,6 +66,8 @@ public:
         listTree = new BTree<List>("data/lists.bin");
         interactionTree = new BTree<Interaction>("data/interactions.bin");
         searchTrie = new Trie();
+        userTrie = new Trie();
+        socialGraph = new SocialGraph("data/social.bin");
         
         nextUserId = userTree->getMaxId() + 1;
         nextFilmId = filmTree->getMaxId() + 1;
@@ -73,6 +78,7 @@ public:
 
         loadInitialData();
         buildSearchIndex();
+        buildUserIndex();
     }
 
     ~ServiceController() {
@@ -83,6 +89,8 @@ public:
         delete listTree;
         delete interactionTree;
         delete searchTrie;
+        delete userTrie;
+        delete socialGraph;
     }
     
     void setCurrentUser(int userId, bool loggedIn, bool isAdmin) {
@@ -105,12 +113,13 @@ public:
                 token << user.user_id << ":" << user.username << ":" << (user.isAdmin ? "1" : "0");
                 
                 ostringstream json;
-                json << "{\"status\":\"success\",\"token\":\"" << token.str() << "\"}";
+                json << "{\"status\":\"success\",\"token\":\"" << token.str() << "\""
+                     << ",\"isAdmin\":" << (user.isAdmin ? "true" : "false") << "}";
                 return json.str();
             }
         }
         
-        return "{\"status\":\"error\",\"error\":\"Invalid credentials\"}";
+        return "{\"status\":\"error\",\"message\":\"Invalid credentials\"}";
     }
 
     string registerUser(const string& username, const string& email, const string& password, const string& bio) {
@@ -125,8 +134,18 @@ public:
         User newUser(nextUserId++, username.c_str(), email.c_str(), password.c_str(), bio.c_str(), false);
         userTree->insert(newUser);
         
+        // Add to user search index (non-admin users only)
+        if (!newUser.isAdmin) {
+            userTrie->insert(newUser.username, newUser.user_id);
+        }
+        
+        // Auto-login the new user
+        ostringstream token;
+        token << newUser.user_id << ":" << newUser.username << ":" << (newUser.isAdmin ? "1" : "0");
+        
         ostringstream json;
-        json << "{\"status\":\"success\",\"user_id\":" << newUser.user_id << "}";
+        json << "{\"status\":\"success\",\"user_id\":" << newUser.user_id 
+             << ",\"token\":\"" << token.str() << "\"}";
         return json.str();
     }
 
@@ -586,5 +605,250 @@ private:
         }
         
         cout << "Search index built successfully!" << endl;
+    }
+    
+    void buildUserIndex() {
+        vector<User> users = userTree->getAllRecords();
+        cout << "Building user index with " << users.size() << " users..." << endl;
+        
+        for (const auto& user : users) {
+            // Skip admin user - admin should be invisible in search
+            if (user.isAdmin) continue;
+            userTrie->insert(user.username, user.user_id);
+        }
+        
+        cout << "User index built successfully!" << endl;
+    }
+    
+public:
+    // Social Graph Methods
+    string followUser(int targetId) {
+        if (!isLoggedIn) {
+            return "{\"status\":\"error\",\"message\":\"Must be logged in\"}";
+        }
+        
+        if (currentUserId == targetId) {
+            return "{\"status\":\"error\",\"message\":\"Cannot follow yourself\"}";
+        }
+        
+        bool success = socialGraph->followUser(currentUserId, targetId);
+        
+        ostringstream json;
+        json << "{\"status\":\"" << (success ? "success" : "error") << "\"";
+        if (success) {
+            json << ",\"action\":\"followed\"";
+        } else {
+            json << ",\"message\":\"Already following or invalid user\"";
+        }
+        json << "}";
+        return json.str();
+    }
+    
+    string unfollowUser(int targetId) {
+        if (!isLoggedIn) {
+            return "{\"status\":\"error\",\"message\":\"Must be logged in\"}";
+        }
+        
+        bool success = socialGraph->unfollowUser(currentUserId, targetId);
+        
+        ostringstream json;
+        json << "{\"status\":\"" << (success ? "success" : "error") << "\"";
+        if (success) {
+            json << ",\"action\":\"unfollowed\"";
+        } else {
+            json << ",\"message\":\"Not following this user\"";
+        }
+        json << "}";
+        return json.str();
+    }
+    
+    string getUserSocial(int userId) {
+        int followersCount = socialGraph->getFollowersCount(userId);
+        int followingCount = socialGraph->getFollowingCount(userId);
+        bool isFollowingUser = isLoggedIn ? socialGraph->isFollowing(currentUserId, userId) : false;
+        
+        ostringstream json;
+        json << "{\"status\":\"success\"";
+        json << ",\"followers_count\":" << followersCount;
+        json << ",\"following_count\":" << followingCount;
+        json << ",\"is_following\":" << (isFollowingUser ? "true" : "false");
+        json << "}";
+        return json.str();
+    }
+    
+    string getUserNetwork(int userId) {
+        vector<int> following = socialGraph->getFollowing(userId);
+        vector<int> followers = socialGraph->getFollowers(userId);
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"following\":[";
+        
+        bool first = true;
+        for (int followedId : following) {
+            User user;
+            if (userTree->search(followedId, user)) {
+                if (!first) json << ",";
+                first = false;
+                json << "{\"user_id\":" << user.user_id
+                     << ",\"username\":\"" << escapeJson(user.username) << "\""
+                     << ",\"avatar_id\":" << user.avatar_id << "}";
+            }
+        }
+        
+        json << "],\"followers\":[";
+        
+        first = true;
+        for (int followerId : followers) {
+            User user;
+            if (userTree->search(followerId, user)) {
+                if (!first) json << ",";
+                first = false;
+                json << "{\"user_id\":" << user.user_id
+                     << ",\"username\":\"" << escapeJson(user.username) << "\""
+                     << ",\"avatar_id\":" << user.avatar_id << "}";
+            }
+        }
+        
+        json << "]}";
+        return json.str();
+    }
+    
+    // User Search
+    string searchUsers(const string& query) {
+        vector<int> userIds = userTrie->search(query);
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"users\":[";
+        
+        bool first = true;
+        int count = 0;
+        for (int userId : userIds) {
+            if (count >= 20) break; // Limit to 20 results
+            
+            User user;
+            if (userTree->search(userId, user)) {
+                if (!first) json << ",";
+                first = false;
+                
+                json << "{\"user_id\":" << user.user_id
+                     << ",\"username\":\"" << escapeJson(user.username) << "\""
+                     << ",\"avatar_id\":" << user.avatar_id
+                     << ",\"bio\":\"" << escapeJson(user.bio) << "\"}";
+                count++;
+            }
+        }
+        
+        json << "]}";
+        return json.str();
+    }
+    
+    // Admin Methods
+    string adminDeleteFilm(int filmId) {
+        if (!isLoggedIn || !currentUserIsAdmin) {
+            return "{\"status\":\"error\",\"message\":\"Unauthorized\"}";
+        }
+        
+        bool success = filmTree->deleteRecord(filmId);
+        
+        ostringstream json;
+        json << "{\"status\":\"" << (success ? "success" : "error") << "\"";
+        if (!success) {
+            json << ",\"message\":\"Film not found\"";
+        }
+        json << "}";
+        return json.str();
+    }
+    
+    string adminDeleteUser(int userId) {
+        if (!isLoggedIn || !currentUserIsAdmin) {
+            return "{\"status\":\"error\",\"message\":\"Unauthorized\"}";
+        }
+        
+        if (userId == 1) { // Protect admin account
+            return "{\"status\":\"error\",\"message\":\"Cannot delete admin account\"}";
+        }
+        
+        bool success = userTree->deleteRecord(userId);
+        
+        ostringstream json;
+        json << "{\"status\":\"" << (success ? "success" : "error") << "\"";
+        if (!success) {
+            json << ",\"message\":\"User not found\"";
+        }
+        json << "}";
+        return json.str();
+    }
+    
+    string adminAddFilm(const string& title, int year, int runtime, float rating,
+                       const string& director, const string& cast, const string& tagline,
+                       const string& overview, const string& posterPath, const string& backdropPath,
+                       const vector<int>& genreIds) {
+        if (!isLoggedIn || !currentUserIsAdmin) {
+            return "{\"status\":\"error\",\"message\":\"Unauthorized\"}";
+        }
+        
+        Film newFilm;
+        newFilm.film_id = nextFilmId++;
+        newFilm.tmdb_id = 0; // Manual entry has no TMDB ID
+        newFilm.release_year = year;
+        newFilm.runtime = runtime;
+        newFilm.vote_average = rating;
+        
+        strncpy(newFilm.title, title.c_str(), sizeof(newFilm.title) - 1);
+        newFilm.title[sizeof(newFilm.title) - 1] = '\0';
+        
+        strncpy(newFilm.director, director.c_str(), sizeof(newFilm.director) - 1);
+        newFilm.director[sizeof(newFilm.director) - 1] = '\0';
+        
+        strncpy(newFilm.cast_summary, cast.c_str(), sizeof(newFilm.cast_summary) - 1);
+        newFilm.cast_summary[sizeof(newFilm.cast_summary) - 1] = '\0';
+        
+        strncpy(newFilm.tagline, tagline.c_str(), sizeof(newFilm.tagline) - 1);
+        newFilm.tagline[sizeof(newFilm.tagline) - 1] = '\0';
+        
+        // Note: Film struct doesn't have overview field, skipping it as per constraints
+        
+        strncpy(newFilm.poster_path, posterPath.c_str(), sizeof(newFilm.poster_path) - 1);
+        newFilm.poster_path[sizeof(newFilm.poster_path) - 1] = '\0';
+        
+        strncpy(newFilm.backdrop_path, backdropPath.c_str(), sizeof(newFilm.backdrop_path) - 1);
+        newFilm.backdrop_path[sizeof(newFilm.backdrop_path) - 1] = '\0';
+        
+        for (size_t i = 0; i < 3 && i < genreIds.size(); i++) {
+            newFilm.genre_ids[i] = genreIds[i];
+        }
+        
+        filmTree->insert(newFilm);
+        searchTrie->insert(newFilm.title, newFilm.film_id);
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"film_id\":" << newFilm.film_id << "}";
+        return json.str();
+    }
+    
+    string adminGetAllUsers() {
+        if (!isLoggedIn || !currentUserIsAdmin) {
+            return "{\"status\":\"error\",\"message\":\"Unauthorized\"}";
+        }
+        
+        vector<User> users = userTree->getAllRecords();
+        
+        ostringstream json;
+        json << "{\"status\":\"success\",\"users\":[";
+        
+        bool first = true;
+        for (const auto& user : users) {
+            if (!first) json << ",";
+            first = false;
+            
+            json << "{\"user_id\":" << user.user_id
+                 << ",\"username\":\"" << escapeJson(user.username) << "\""
+                 << ",\"email\":\"" << escapeJson(user.email) << "\""
+                 << ",\"isAdmin\":" << (user.isAdmin ? "true" : "false")
+                 << ",\"avatar_id\":" << user.avatar_id << "}";
+        }
+        
+        json << "]}";
+        return json.str();
     }
 };
